@@ -166,7 +166,8 @@ $avatar = (!empty($profile_pic))
 
             <div class="profile-column">
               <h3><i class="fa-solid fa-user"></i> Personal Info</h3>
-              <p><strong>Admin Username:</strong> <?php echo htmlspecialchars($username); ?></p>
+              <p><strong>Admin Name:</strong> <?php echo htmlspecialchars($full_name); ?></p>
+
               <p><strong>Email:</strong> <?php echo htmlspecialchars($email); ?></p>
             </div>
 
