@@ -1,0 +1,2425 @@
+/* =========================================================
+   ADMIN VIEW CUSTOM STYLES
+   (Extends StudentView's format.css)
+   ========================================================= */
+
+/* ========== DASHBOARD (ADMIN OVERVIEW) ========== */
+
+.dashboard-body h1 {
+  color: #b21e8f;
+  margin-bottom: 5px;
+}
+
+.semester-text {
+  color: #666;
+  margin-bottom: 25px;
+}
+
+/* Summary cards reuse StudentView styles; this just ensures equal height */
+.summary-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.summary-card {
+  flex: 1 1 250px;
+  text-align: left;
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px 20px;
+  color: #b21e8f;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.2s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-3px);
+  background-color: #fff6fa;
+}
+
+.summary-card h4 {
+  font-size: 15px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.summary-card p {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+
+/* ========== RECENT ACTIVITY SECTION ========== */
+
+.activity-section {
+  margin-top: 35px;
+}
+
+.activity-section h2 {
+  color: #b21e8f;
+  font-size: 20px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-feed {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 16px 18px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.activity-feed::-webkit-scrollbar {
+  width: 8px;
+}
+
+.activity-feed::-webkit-scrollbar-thumb {
+  background-color: #d22aa6;
+  border-radius: 6px;
+}
+
+.activity-item {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  color: #444;
+  padding: 6px 0;
+  border-bottom: 1px solid #f3f3f3;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-label {
+  color: #b21e8f;
+  font-weight: bold;
+}
+
+/* ========== LOGOUT MODAL ========== */
+
+.modal#adminLogoutModal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(249, 234, 243, 0.7); /* soft pink overlay */
+  backdrop-filter: blur(4px);
+  justify-content: center;
+  align-items: center;
+  z-index: 300;
+}
+
+.logout-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 50px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.25s ease;
+  width: 380px;
+  max-width: 90%;
+}
+
+.logout-icon {
+  color: #b21e8f;
+  font-size: 36px;
+  margin-bottom: 15px;
+}
+
+.logout-modal h3 {
+  color: #b21e8f;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.logout-modal p {
+  color: #444;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+.logout-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.logout-buttons .confirm-btn,
+.logout-buttons .cancel-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.logout-buttons .confirm-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.logout-buttons .confirm-btn:hover {
+  background-color: #d22aa6;
+  transform: translateY(-1px);
+}
+
+.logout-buttons .cancel-btn {
+  background-color: #f2f2f2;
+  color: #555;
+}
+
+.logout-buttons .cancel-btn:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-1px);
+}
+
+/* ========== ANIMATIONS ========== */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .summary-container {
+    flex-direction: column;
+  }
+
+  .logout-modal {
+    width: 90%;
+    padding: 30px;
+  }
+}
+
+
+/* =========================================================
+   USER MANAGEMENT (ADMIN VIEW)
+========================================================= */
+
+.user-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-controls select,
+.filter-controls input {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.add-btn {
+  background-color: #b21e8f;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.add-btn:hover {
+  background-color: #d22aa6;
+}
+
+/* Table */
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.user-table th {
+  background-color: #b21e8f;
+  color: #fff;
+  padding: 12px 15px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.user-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  color: #333;
+}
+
+.user-table tr:hover {
+  background-color: #fff6fa;
+}
+
+.edit-btn, .delete-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.edit-btn {
+  background-color: #f8c9df;
+  color: #b21e8f;
+}
+
+
+.edit-btn:hover {
+  background-color: #f1b7d2;
+}
+
+.delete-btn:hover {
+  background-color: #f0d2e2;
+}
+
+/* Modal styling */
+.user-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 35px 40px;
+  width: 420px;
+  max-width: 90%;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease;
+  text-align: center;
+}
+
+.user-modal .modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.user-modal .modal-header i {
+  font-size: 38px;
+  color: #b21e8f;
+  margin-bottom: 8px;
+}
+
+.user-modal .modal-header h2 {
+  color: #b21e8f;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.user-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.user-modal label {
+  font-weight: bold;
+  color: #b21e8f;
+  font-size: 14px;
+}
+
+.user-modal input,
+.user-modal select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.user-modal .button-group {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.user-modal .save-btn,
+.user-modal .cancel-btn {
+  width: 150px;
+  height: 42px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.user-modal .save-btn {
+  background-color: #b21e8f;
+  color: white;
+}
+
+.user-modal .cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+
+.user-modal .save-btn:hover {
+  background-color: #d22aa6;
+}
+
+.user-modal .cancel-btn:hover {
+  background-color: #f3c3dc;
+}
+
+/* =========================================================
+   FEEDBACK & POPUPS
+========================================================= */
+.success-popup {
+  display: none;
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  background: #b21e8f;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  font-weight: 500;
+  font-size: 14px;
+  align-items: center;
+  gap: 8px;
+  animation: fadeIn 0.3s ease;
+  transition: opacity 0.5s ease;
+  z-index: 999;
+}
+
+.success-popup i {
+  font-size: 16px;
+}
+
+/* COURSE TABLE BUTTON COLORS */
+.edit-btn {
+  background-color: #b21e8f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.edit-btn:hover {
+  background-color: #d22aa6;
+}
+
+.delete-btn {
+  background-color: #f8c9df;
+  color: #b21e8f;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.delete-btn:hover {
+  background-color: #f3bcd6;
+}
+
+
+/* =========================================
+   ADMIN - ACTIVITY LOGS
+   ========================================= */
+
+.logs-wrapper {
+  padding: 40px 60px;
+  background: linear-gradient(to bottom right, #fff, #fff6fa);
+  min-height: 100vh;
+}
+
+.logs-wrapper h1 {
+  color: #b21e8f;
+  margin-bottom: 5px;
+}
+
+.logs-wrapper .semester-text {
+  color: #555;
+  margin-bottom: 20px;
+}
+
+/* Filters row */
+.logs-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 18px;
+  background: #fff;
+  padding: 14px 16px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.logs-filters .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.logs-filters label {
+  font-size: 12px;
+  font-weight: bold;
+  color: #b21e8f;
+}
+
+.logs-filters input,
+.logs-filters select {
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 13px;
+  min-width: 160px;
+}
+
+.apply-filter-btn,
+.clear-filter-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.apply-filter-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.apply-filter-btn:hover {
+  background-color: #d22aa6;
+}
+
+.clear-filter-btn {
+  background-color: #f8c9df;
+  color: #b21e8f;
+}
+
+.clear-filter-btn:hover {
+  background-color: #f3bcd6;
+}
+
+/* Logs table */
+.logs-table-wrapper {
+  margin-top: 5px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow-x: auto;
+}
+
+.logs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.logs-table th {
+  background-color: #b21e8f;
+  color: #fff;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.logs-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #333;
+}
+
+.logs-table tr:hover {
+  background-color: #fff6fa;
+}
+
+/* View button */
+.view-log-btn {
+  background-color: #f8c9df;
+  color: #b21e8f;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.view-log-btn:hover {
+  background-color: #f3bcd6;
+}
+
+/* Footer actions */
+.logs-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* Reuse existing .export-btn from MyClasses/Admin if present */
+.logs-actions .export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ================================
+   ADMIN LOGS - EXPORT BUTTON STYLE
+================================ */
+.logs-export-btn {
+  background-color: #b21e8f;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.logs-export-btn i {
+  font-size: 14px;
+}
+
+.logs-export-btn:hover {
+  background-color: #d22aa6;
+}
+
+/* ================================
+   ADMIN LOGS EXPORT MODAL
+================================ */
+.logs-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  backdrop-filter: blur(3px);
+}
+
+.logs-modal-content {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.15);
+  padding: 30px 35px;
+  width: 420px;
+  max-width: 90%;
+  text-align: center;
+  animation: fadeIn 0.25s ease;
+  position: relative;
+}
+
+.logs-modal-header i {
+  font-size: 38px;
+  color: #b21e8f;
+  margin-bottom: 8px;
+}
+
+.logs-modal-header h2 {
+  color: #b21e8f;
+  font-size: 22px;
+  margin-bottom: 12px;
+}
+
+.logs-modal-desc {
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 18px;
+}
+
+.logs-modal-close {
+  position: absolute;
+  right: 20px;
+  top: 18px;
+  font-size: 22px;
+  color: #b21e8f;
+  cursor: pointer;
+}
+
+.logs-export-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+
+.logs-export-form label {
+  font-weight: 600;
+  color: #b21e8f;
+  font-size: 14px;
+}
+
+.logs-export-form select,
+.logs-export-form input[type="date"] {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.logs-export-form input[type="date"]:focus,
+.logs-export-form select:focus {
+  border-color: #b21e8f;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(178, 30, 143, 0.15);
+}
+
+.logs-button-group {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.logs-export-confirm-btn,
+.logs-export-cancel-btn {
+  width: 150px;
+  height: 45px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.logs-export-confirm-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.logs-export-confirm-btn:hover {
+  background-color: #d22aa6;
+}
+
+.logs-export-cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+
+.logs-export-cancel-btn:hover {
+  background-color: #f3c3dc;
+}
+
+/* =========================================================
+   ADMIN ANNOUNCEMENTS PAGE (BASED ON PROF VIEW)
+========================================================= */
+.announcement-body {
+  background: linear-gradient(to bottom right, #fff, #fff6fa);
+  padding: 40px 60px;
+  min-height: 100vh;
+}
+
+.announcement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.announcement-add-btn {
+  background-color: #b21e8f;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.announcement-add-btn:hover {
+  background-color: #d22aa6;
+}
+
+.announcement-section {
+  margin-top: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.announcement-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
+
+.announcement-card:hover {
+  transform: translateY(-3px);
+  background-color: #fff6fa;
+}
+
+.announcement-card h3 {
+  color: #b21e8f;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.announce-date {
+  font-size: 13px;
+  color: #777;
+  margin-bottom: 8px;
+}
+
+.announce-preview {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.announcement-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.announcement-edit-btn,
+.announcement-delete-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.announcement-edit-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.announcement-edit-btn:hover {
+  background-color: #d22aa6;
+}
+
+.announcement-delete-btn {
+  background-color: #f8c9df;
+  color: #b21e8f;
+}
+
+.announcement-delete-btn:hover {
+  background-color: #f3bcd6;
+}
+
+/* =========================================================
+   ANNOUNCEMENT MODALS
+========================================================= */
+.announcement-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  justify-content: center;
+  align-items: center;
+  z-index: 300;
+}
+
+.announcement-modal-content {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+  width: 480px;
+  max-width: 90%;
+  padding: 30px;
+  animation: fadeIn 0.3s ease;
+}
+
+.announcement-modal-content h2 {
+  color: #b21e8f;
+  margin-bottom: 10px;
+}
+
+.announcement-modal-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.announcement-modal-content input,
+.announcement-modal-content textarea {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.announcement-modal-content label {
+  font-weight: bold;
+  color: #b21e8f;
+  font-size: 14px;
+}
+
+.delete-modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 30px;
+  text-align: center;
+  width: 420px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.delete-modal .modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.delete-modal .modal-header i {
+  color: #b21e8f;
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.delete-modal p {
+  color: #333;
+  margin-bottom: 18px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   ANNOUNCEMENT MODAL BUTTON ALIGNMENT FIX
+========================================================= */
+.announcement-modal-content .button-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.announcement-modal-content .save-btn,
+.announcement-modal-content .cancel-btn {
+  flex: 1 1 0;
+  max-width: 150px;
+  height: 44px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.announcement-modal-content .save-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.announcement-modal-content .save-btn:hover {
+  background-color: #d22aa6;
+}
+
+.announcement-modal-content .cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+
+.announcement-modal-content .cancel-btn:hover {
+  background-color: #f3c3dc;
+}
+
+/* === FIX: Match StudentView "Update Password" Button Style === */
+.password-modal .update-btn,
+.password-modal .save-btn {
+  background-color: #b21e8f; /* main CEU pink tone */
+  color: #fff;
+}
+
+.password-modal .update-btn:hover,
+.password-modal .save-btn:hover {
+  background-color: #d22aa6; /* hover shade */
+}
+
+/* 🔧 Force Correct Style for Update Password Button */
+.password-modal .update-btn {
+  background-color: #b21e8f !important;
+  color: #fff !important;
+}
+
+.password-modal .update-btn:hover {
+  background-color: #d22aa6 !important;
+}
+
+/* =========================================================
+   FINAL FIX – Password Modal Button Styling
+   Ensures "Update Password" matches StudentView color scheme
+   and overrides all generic modal button classes.
+========================================================= */
+
+.password-modal .button-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.password-modal .update-btn,
+.password-modal .cancel-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 155px;
+  height: 45px;
+  padding: 0;
+  margin: 0;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: normal;
+}
+
+/* ✅ Correct CEU color theme (dark pink main) */
+.password-modal .update-btn {
+  background-color: #b21e8f !important;
+  color: #fff !important;
+  border: none !important;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.password-modal .update-btn:hover {
+  background-color: #d22aa6 !important;
+  transform: translateY(-1px);
+}
+
+/* Cancel button – consistent soft pink */
+.password-modal .cancel-btn {
+  background-color: #f9d4e7 !important;
+  color: #b21e8f !important;
+  border: none !important;
+}
+
+.password-modal .cancel-btn:hover {
+  background-color: #f3c3dc !important;
+}
+
+/* =========================================================
+   ADMIN ANNOUNCEMENTS (MATCHING PROFESSORVIEW)
+========================================================= */
+
+.announcement-form {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  padding: 25px 30px;
+  margin-bottom: 35px;
+}
+
+.announcement-form h3 {
+  color: #b21e8f;
+  margin-bottom: 18px;
+}
+
+.announcement-form label {
+  font-weight: bold;
+  color: #b21e8f;
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.announcement-form input,
+.announcement-form textarea,
+.announcement-form select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+}
+
+.announcement-form textarea {
+  resize: vertical;
+}
+
+.save-btn {
+  background-color: #b21e8f;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.save-btn:hover {
+  background-color: #d22aa6;
+}
+
+/* Cards */
+.announcement-card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 20px;
+  margin-bottom: 18px;
+  transition: all 0.2s ease;
+}
+
+.announcement-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  background-color: #fff6fa;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.details-btn,
+.edit-btn,
+.delete-btn {
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.details-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+.details-btn:hover { background-color: #d22aa6; }
+
+.edit-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+.edit-btn:hover { background-color: #f3c3dc; }
+
+.delete-btn {
+  background-color: #f8c9df;
+  color: #b21e8f;
+}
+.delete-btn:hover { background-color: #f3bcd6; }
+
+/* Modals */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 30px;
+  width: 420px;
+  max-width: 90%;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  position: relative;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content h2 {
+  color: #b21e8f;
+  margin-bottom: 12px;
+}
+
+.modal-content p {
+  color: #333;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.modal-content input,
+.modal-content textarea {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancel-btn:hover {
+  background-color: #f3c3dc;
+}
+
+/* =========================================================
+   FIX: Match Edit/Delete Buttons to View Details Structure
+========================================================= */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.card-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  min-width: 130px;       /* ensures equal width */
+  height: 44px;           /* ensures equal height */
+}
+
+.card-actions button i {
+  margin-right: 6px;
+  font-size: 14px;
+}
+
+/* ---- Primary (View Details) ---- */
+.details-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+.details-btn:hover {
+  background-color: #d22aa6;
+}
+
+/* ---- Secondary (Edit) ---- */
+.edit-btn {
+  background-color: #b21e8f;   /* same as primary to match */
+  color: #fff;
+}
+.edit-btn:hover {
+  background-color: #d22aa6;
+}
+
+/* ---- Delete (warning variant) ---- */
+.delete-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+.delete-btn:hover {
+  background-color: #f3c3dc;
+}
+
+/* === Announcements: align action buttons in a single row === */
+
+.announcement-card .card-actions {
+  display: flex;
+  justify-content: flex-start;
+  align-items: stretch;       /* same height */
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Make all three share the same base sizing + layout */
+.announcement-card .card-actions .details-btn,
+.announcement-card .card-actions .edit-btn,
+.announcement-card .card-actions .delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 8px;
+  border: none;
+  box-sizing: border-box;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.announcement-card .card-actions .details-btn i,
+.announcement-card .card-actions .edit-btn i,
+.announcement-card .card-actions .delete-btn i {
+  margin-right: 6px;
+}
+
+/* Colors – match View Details style */
+.announcement-card .card-actions .details-btn,
+.announcement-card .card-actions .edit-btn {
+  background-color: #b21e8f;
+  color: #ffffff;
+}
+
+.announcement-card .card-actions .details-btn:hover,
+.announcement-card .card-actions .edit-btn:hover {
+  background-color: #d22aa6;
+}
+
+/* Delete keeps the soft pink */
+.announcement-card .card-actions .delete-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+
+.announcement-card .card-actions .delete-btn:hover {
+  background-color: #f3c3dc;
+}
+
+/* =========================================================
+   FIX: Align and resize View / Edit / Delete buttons
+========================================================= */
+.announcement-card .card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;                /* small gap between buttons */
+  margin-top: 10px;
+}
+
+/* Keep buttons compact, same height */
+.announcement-card .card-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 16px;       /* smaller padding */
+  font-size: 13px;         /* smaller text */
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  height: 36px;            /* consistent height */
+  line-height: 1;
+}
+
+.announcement-card .card-actions button i {
+  margin-right: 6px;
+  font-size: 13px;
+}
+
+/* Match color scheme */
+.announcement-card .card-actions .details-btn,
+.announcement-card .card-actions .edit-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.announcement-card .card-actions .details-btn:hover,
+.announcement-card .card-actions .edit-btn:hover {
+  background-color: #d22aa6;
+}
+
+.announcement-card .card-actions .delete-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+
+.announcement-card .card-actions .delete-btn:hover {
+  background-color: #f3c3dc;
+}
+
+/* =========================================================
+   FINAL FIX – Align & Resize View / Edit / Delete Buttons
+   ========================================================= */
+.announcement-card .card-actions {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;                /* Small even spacing */
+  margin-top: 10px;
+}
+
+.announcement-card .card-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;            /* Smaller height */
+  padding: 0 14px;         /* Compact width */
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+/* =========================================================
+   FINAL FIX – Align & Resize View / Edit / Delete Buttons
+   ========================================================= */
+.announcement-card .card-actions {
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+}
+
+.announcement-card .card-actions button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 32px !important;        /* smaller button height */
+  padding: 0 14px !important;     /* tighter width */
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+  line-height: 1 !important;
+}
+
+/* Colors */
+.announcement-card .card-actions .details-btn {
+  background-color: #b21e8f !important;
+  color: #fff !important;
+}
+.announcement-card .card-actions .details-btn:hover {
+  background-color: #d22aa6 !important;
+}
+
+.announcement-card .card-actions .edit-btn {
+  background-color: #f9d4e7 !important;
+  color: #b21e8f !important;
+}
+.announcement-card .card-actions .edit-btn:hover {
+  background-color: #f3c3dc !important;
+}
+
+.announcement-card .card-actions .delete-btn {
+  background-color: #f8c9df !important;
+  color: #b21e8f !important;
+}
+.announcement-card .card-actions .delete-btn:hover {
+  background-color: #f3bcd6 !important;
+}
+
+/* =========================================================
+   ALIGN FIX – lift only View Details slightly
+   ========================================================= */
+.announcement-card .card-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+}
+
+.announcement-card .card-actions button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 32px !important;
+  padding: 0 14px !important;
+  line-height: 1 !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+/* only lift View Details slightly */
+.announcement-card .card-actions .details-btn {
+  position: relative !important;
+  top: -5px !important; /* raises just this button */
+}
+
+/* keep others in normal position */
+.announcement-card .card-actions .edit-btn,
+.announcement-card .card-actions .delete-btn {
+  position: relative !important;
+  top: 0 !important;
+}
+
+/* =========================================================
+   EDIT / DELETE MODAL (ANNOUNCEMENTS)
+========================================================= */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(249, 234, 243, 0.7); /* CEU soft pink tint */
+  justify-content: center;
+  align-items: center;
+  z-index: 300;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 14px;
+  padding: 30px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  width: 420px;
+  max-width: 90%;
+  animation: fadeIn 0.25s ease;
+}
+
+.modal-content h2 {
+  color: #b21e8f;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.modal-content p {
+  color: #444;
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.modal-content label {
+  color: #b21e8f;
+  font-weight: bold;
+  font-size: 14px;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.modal-content input,
+.modal-content textarea,
+.modal-content select {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.confirm-btn {
+  background-color: #b21e8f;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.confirm-btn:hover { background-color: #d22aa6; }
+
+.cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.cancel-btn:hover { background-color: #f3c3dc; }
+
+.close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 22px;
+  color: #b21e8f;
+  cursor: pointer;
+}
+.close:hover { color: #d22aa6; }
+
+/* =========================================================
+   UNIFIED FIX – MATCH ADMINVIEW BUTTONS WITH PROFESSORVIEW
+========================================================= */
+.announcement-card .card-actions {
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+}
+
+/* Reset all browser defaults and unify sizing */
+.announcement-card .card-actions button {
+  all: unset !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 34px !important;          /* matches ProfView */
+  padding: 0 16px !important;       /* same width balance */
+  border-radius: 6px !important;
+  font-family: "Arial", sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+  transition: background-color 0.2s ease !important;
+  border: none !important;
+}
+
+/* Icons */
+.announcement-card .card-actions button i {
+  margin-right: 6px !important;
+  font-size: 14px !important;
+}
+
+/* View Details (lifted slightly) */
+.announcement-card .card-actions .details-btn {
+  background-color: #b21e8f !important;
+  color: #fff !important;
+  position: relative !important;
+  top: 0px !important;
+}
+.announcement-card .card-actions .details-btn:hover {
+  background-color: #d22aa6 !important;
+}
+
+/* Edit */
+.announcement-card .card-actions .edit-btn {
+  background-color: #f9d4e7 !important;
+  color: #b21e8f !important;
+}
+.announcement-card .card-actions .edit-btn:hover {
+  background-color: #f3c3dc !important;
+}
+
+/* Delete */
+.announcement-card .card-actions .delete-btn {
+  background-color: #f8c9df !important;
+  color: #b21e8f !important;
+}
+.announcement-card .card-actions .delete-btn:hover {
+  background-color: #f3bcd6 !important;
+}
+
+/* Slightly enlarge Delete button for better emphasis */
+.announcement-card .card-actions .delete-btn {
+  background-color: #f8c9df !important;
+  color: #b21e8f !important;
+  height: 36px !important;       /* +2px taller */
+  padding: 0 18px !important;    /* +2px wider */
+  font-size: 13.5px !important;  /* slightly larger text */
+  font-weight: 700 !important;   /* make label a bit bolder */
+}
+
+.announcement-card .card-actions .delete-btn:hover {
+  background-color: #f3bcd6 !important;
+}
+
+/* ========== PROGRAMS PAGE TOOLBAR ========== */
+.program-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.program-toolbar form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.program-toolbar input {
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.program-toolbar button {
+    background: #b21e8f;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.program-toolbar button:hover {
+    background: #d22aa6;
+}
+
+.dashboard-body {
+    padding-bottom: 140px !important;
+}
+
+/* ===== FIXED PAGINATION ===== */
+.pagination-bar {
+    position: fixed;
+    left: 190px; /* match sidebar width */
+    right: 0;
+    bottom: 20px;
+    display: flex;
+    justify-content: center;
+    z-index: 50;
+    pointer-events: none;
+}
+
+.pagination-inner {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 6px 14px;
+    border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    display: flex;
+    gap: 6px;
+    pointer-events: auto;
+}
+
+.pagination-inner a,
+.pagination-inner span {
+    min-width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.pagination-inner a {
+    background: #f8c9df;
+    color: #b21e8f;
+}
+
+.pagination-inner a:hover {
+    background: #f3bcd6;
+}
+
+.pagination-inner .current-page {
+    background: #b21e8f;
+    color: #fff;
+    font-weight: bold;
+}
+
+.pagination-inner .disabled {
+    background: #eee;
+    color: #aaa;
+    cursor: default;
+}
+
+/* Prevent background cutoff below pagination */
+.dashboard-body {
+    padding-bottom: 140px !important;
+}
+
+/* Prevent accidental horizontal scrolling */
+body {
+    overflow-x: hidden;
+}
+
+/* ========== DEPARTMENTS PAGE TOOLBAR ========== */
+.department-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.department-toolbar form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.department-toolbar input {
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.department-toolbar button {
+    background: #b21e8f;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.department-toolbar button:hover {
+    background: #d22aa6;
+}
+
+/* ========== STUDENTS PAGE TOOLBAR ========== */
+.student-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.student-toolbar form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.student-toolbar input[type="text"] {
+    padding: 8px 20px;
+    border-radius: 20px;
+    width: 280px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.student-toolbar button {
+    background: #b21e8f;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.student-toolbar button:hover {
+    background: #d22aa6;
+}
+
+.student-toolbar .clear-link {
+    color: #b21e8f;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+#addStudentBtn {
+    background: #b21e8f;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+#addStudentBtn:hover {
+    background: #d22aa6;
+}
+
+/* STUDENTS PAGE — MATCH PROGRAMS & DEPARTMENTS STYLE */
+.student-toolbar input[type="text"] {
+    padding: 8px 20px;
+    height: 36px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.student-toolbar button[type="submit"] {
+    background: #b21e8f;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.student-toolbar button[type="submit"]:hover {
+    background: #d22aa6;
+}
+
+/* Fix search icon size to match other pages */
+.student-toolbar button i {
+    font-size: 14px;
+}
+
+/* FACULTY PAGE TOOLBAR */
+.faculty-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.faculty-toolbar form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.faculty-toolbar input[type="text"] {
+    padding: 8px 20px;
+    height: 36px;
+    width: 260px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.faculty-toolbar button[type="submit"] {
+    background: #b21e8f;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.faculty-toolbar button[type="submit"]:hover {
+    background: #d22aa6;
+}
+
+.faculty-toolbar .clear-link {
+    color: #b21e8f;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+#addFacultyBtn {
+    background: #b21e8f;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+#addFacultyBtn:hover {
+    background: #d22aa6;
+}
+
+/* ========== ENROLL STUDENTS PAGE ========== */
+
+.enroll-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.enroll-course-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.enroll-course-form input[type="text"] {
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  min-width: 260px;
+}
+
+.enroll-course-form select {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  min-width: 260px;
+  background-color: #fff;
+}
+
+.enroll-course-form button {
+  background: #b21e8f;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.enroll-course-form button:hover {
+  background: #d22aa6;
+}
+
+/* course summary card */
+.enroll-course-summary {
+  margin-bottom: 16px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.enroll-course-main h2 {
+  font-size: 20px;
+  color: #b21e8f;
+  margin-bottom: 4px;
+}
+
+.enroll-course-main p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.enroll-course-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #555;
+}
+
+.enroll-empty-hint {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #777;
+}
+
+/* student search within course */
+.enroll-student-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.enroll-student-search input[type="text"] {
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  min-width: 260px;
+}
+
+.enroll-student-search button {
+  background: #b21e8f;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.enroll-student-search button:hover {
+  background: #d22aa6;
+}
+
+/* student list card */
+.enroll-students-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 8px 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.enroll-students-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.enroll-students-row:nth-child(odd) {
+  background: #ffe6f4;
+}
+
+.enroll-students-row:nth-child(even) {
+  background: #ffeef8;
+}
+
+.enroll-student-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.enroll-student-left input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.enroll-student-name {
+  font-size: 14px;
+}
+
+.enroll-student-id {
+  font-size: 12px;
+  color: #777;
+  margin-left: 4px;
+}
+
+.enroll-student-meta {
+  font-size: 13px;
+  color: #555;
+}
+
+.enroll-no-students {
+  padding: 8px 4px;
+  font-size: 14px;
+  color: #777;
+}
+
+/* save button + status */
+.enroll-save-btn {
+  margin-top: 14px;
+  padding-inline: 22px;
+}
+
+.enroll-status-msg {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #2e7d32;
+}
+
+.enroll-course-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.enroll-search-btn {
+  background: #b21e8f;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.enroll-search-btn:hover {
+  background: #d22aa6;
+}
+
+/* ================================
+   ENROLL STUDENTS — STUDENT ROW
+================================ */
+
+.enroll-student-info {
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+}
+
+.student-name {
+    font-weight: 600;
+    font-size: 15px;
+    color: #222;
+}
+
+.student-meta {
+    margin-top: 3px;
+    font-size: 13px;
+    color: #444;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.student-meta span {
+    white-space: nowrap;
+}
+
+.enroll-students-row {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.enroll-student-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.enroll-students-card {
+    padding: 18px;
+    border-radius: 14px;
+    background: rgba(255, 182, 193, 0.25);
+    border: 1px solid rgba(255, 182, 193, 0.45);
+    box-shadow: 0px 1px 4px rgba(0,0,0,0.05);
+}
+
+/* ========== COURSES PAGE TOOLBAR ========== */
+.course-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.course-toolbar .course-filter-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.course-toolbar select,
+.course-toolbar input[type="text"] {
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.course-toolbar button {
+    background: #b21e8f;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.course-toolbar button:hover {
+    background: #d22aa6;
+}
+
+/* Add Course button (same look as other Add buttons) */
+#addCourseBtn {
+    background: #b21e8f;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+#addCourseBtn:hover {
+    background: #d22aa6;
+}
+
+/* --- MODAL OVERLAY --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.35);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* --- MODAL OVERLAY --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.35);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* ===== Courses modal layout — updated spacing ===== */
+
+.course-modal-card {
+  background: #ffffff;
+  border-radius: 18px;
+  width: min(900px, 92vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+}
+
+.course-modal-header {
+  padding: 20px 28px 12px;
+  border-bottom: 1px solid #f1e2f2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.course-modal-body {
+  padding: 24px 28px 20px;
+  overflow-y: auto;
+}
+
+/* More breathing room between columns and rows */
+.course-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 40px;    /* wider horizontal spacing */
+  row-gap: 20px;       /* more vertical spacing */
+}
+
+/* Increase spacing between label and input */
+.course-modal-col label,
+.course-modal-full label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #c2188f;
+  margin-bottom: 6px;     /* + more room */
+  display: block;
+}
+
+.course-modal-col input,
+.course-modal-col select,
+.course-modal-full textarea {
+  width: 100%;
+  padding: 10px 12px;     /* thicker input padding */
+  border-radius: 10px;
+  border: 1px solid #e2d5ee;
+  font-size: 14px;
+  margin-bottom: 6px;     /* spacing under input */
+}
+
+/* Description full-width section */
+.course-modal-full {
+  grid-column: 1 / -1;
+}
+
+.course-description-textarea {
+  min-height: 80px;
+  max-height: 140px;
+  resize: vertical;
+}
+
+/* Footer spacing */
+.course-modal-footer {
+  padding: 18px 28px 22px;
+  border-top: 1px solid #f1e2f2;
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+
+
+
+

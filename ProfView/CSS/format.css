@@ -1,0 +1,2989 @@
+/* ========== GLOBAL RESET ========== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+html, body {
+  height: 100%;
+  background-color: #fff;
+}
+
+.portal-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ========== SIDEBAR ========== */
+.sidebar {
+  width: 190px;
+  background: linear-gradient(to bottom, #f8c9df, #ffffff);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+}
+
+.sidebar-header {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.sidebar-logo {
+  width: 100px;
+  height: auto;
+  object-fit: contain;
+}
+
+
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-menu a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #b21e8f;
+  text-decoration: none;
+  padding: 10px 18px;
+  font-size: 13px;
+  transition: all 0.25s ease;
+}
+
+.sidebar-menu a:hover {
+  background-color: rgba(242, 191, 220, 0.4);
+  transform: scale(1.02);
+}
+
+.sidebar-menu a.active {
+  background-color: #fff;
+  border-left: 3px solid #b21e8f;
+  font-weight: bold;
+}
+
+.sidebar-footer {
+  padding: 15px 20px;
+}
+
+.sidebar-footer a {
+  color: #b21e8f;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+/* ========== MAIN CONTENT ========== */
+.main-content {
+  margin-left: 190px;
+  width: calc(100% - 190px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========== TOPBAR ========== */
+.topbar {
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 25px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.search-container {
+  position: relative;
+  width: 260px;
+}
+
+.search-bar {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+}
+
+.search-icon {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  color: #b21e8f;
+}
+
+.profile-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-name {
+  color: #b21e8f;
+  font-weight: bold;
+}
+
+/* ========== DASHBOARD BODY ========== */
+.dashboard-body {
+  padding: 40px 60px;
+  background: linear-gradient(to bottom right, #fff, #fff6fa);
+  min-height: 100vh;
+}
+
+.dashboard-body h1 {
+  color: #b21e8f;
+  margin-bottom: 5px;
+}
+
+.semester-text {
+  color: #555;
+  margin-bottom: 25px;
+}
+
+/* ========== SUMMARY CARDS ========== */
+.summary-container {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 20px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.summary-card {
+  flex: 1 1 250px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+  padding: 18px 20px;
+  color: #b21e8f;
+  transition: all 0.2s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.summary-card h4 {
+  font-size: 15px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.summary-card p {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* QUICK ACTIONS CARD */
+.quick-actions .quick-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.quick-btn {
+  background-color: #b21e8f;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 12px;
+  text-decoration: none;
+  min-width: 130px;
+  text-align: center;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.quick-btn:hover {
+  background-color: #d22aa6;
+}
+
+/* ========== LOGOUT MODAL ========== */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(5px);
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+.modal-content.logout-modal {
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease;
+}
+
+.logout-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.confirm-btn, .cancel-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.confirm-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.cancel-btn {
+  background-color: #ddd;
+}
+
+.confirm-btn:hover {
+  background-color: #d22aa6;
+}
+
+.cancel-btn:hover {
+  background-color: #ccc;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Announcement Cards (reuse student version) */
+.announcements-section {
+  margin-top: 35px;
+}
+
+.announcements-section h2 {
+  color: #b21e8f;
+  font-size: 22px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.announcement-card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 20px;
+  margin-bottom: 18px;
+  transition: all 0.2s ease;
+}
+
+.announcement-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  background-color: #fff6fa;
+}
+
+.announcement-card h3 {
+  color: #b21e8f;
+  font-size: 17px;
+  margin-bottom: 6px;
+}
+
+.announce-date {
+  font-size: 13px;
+  color: #777;
+  margin-bottom: 10px;
+}
+
+.announce-preview {
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+/* Buttons inside announcements */
+.details-btn {
+  background-color: #b21e8f;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.2s ease;
+}
+
+.details-btn:hover {
+  background-color: #d22aa6;
+}
+
+/* Reuse modal styles for announcement popups */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  justify-content: center;
+  align-items: center;
+  z-index: 300;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 25px 30px;
+  border-radius: 12px;
+  width: 480px;
+  max-width: 90%;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content h2 {
+  color: #b21e8f;
+  margin-bottom: 12px;
+}
+
+.modal-content p {
+  color: #333;
+  line-height: 1.6;
+}
+
+.close {
+  color: #b21e8f;
+  float: right;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: #d22aa6;
+}
+
+/* ========== MY CLASSES PAGE ========== */
+.card-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.export-btn {
+  background-color: #f8c9df;
+  color: #b21e8f;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.2s;
+}
+
+.export-btn:hover {
+  background-color: #f1b7d2;
+}
+
+/* Larger modal for class lists */
+.large-modal {
+  width: 650px;
+  max-width: 90%;
+  padding: 25px 30px;
+}
+
+/* Student Table */
+.student-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.student-table th {
+  background-color: #b21e8f;
+  color: #fff;
+  text-align: left;
+  padding: 10px 12px;
+  font-weight: bold;
+}
+
+.student-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+
+/* Scrollable modal content for long class lists */
+.large-modal {
+  width: 650px;
+  max-width: 90%;
+  padding: 25px 30px;
+  max-height: 80vh; /* Prevents it from going off-screen */
+  display: flex;
+  flex-direction: column;
+}
+
+.large-modal h2 {
+  margin-bottom: 10px;
+  color: #b21e8f;
+}
+
+.large-modal p {
+  color: #444;
+  margin-bottom: 10px;
+}
+
+.large-modal table {
+  flex: 1; /* Makes table take available space */
+  overflow-y: auto;
+  display: block;
+  max-height: 55vh; /* Scroll limit */
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+}
+
+.large-modal table::-webkit-scrollbar {
+  width: 8px;
+}
+
+.large-modal table::-webkit-scrollbar-thumb {
+  background-color: #d22aa6;
+  border-radius: 8px;
+}
+
+.large-modal table::-webkit-scrollbar-track {
+  background-color: #fce3ef;
+}
+
+
+.student-table tr:hover {
+  background-color: #fff6fa;
+}
+
+.large-modal table {
+  background: #fffafa;
+}
+
+/* ========== PROFESSOR MY CLASSES (CARD-STYLE) ========== */
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 22px;
+  margin-top: 20px;
+}
+
+.course-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  padding: 22px;
+  transition: all 0.25s ease;
+  border-top: 5px solid #b21e8f;
+}
+
+.course-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  background-color: #fff6fa;
+}
+
+.course-card h3 {
+  color: #b21e8f;
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+
+.course-card p {
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 5px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.details-btn, .export-btn {
+  font-size: 13px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.details-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.details-btn:hover {
+  background-color: #d22aa6;
+}
+
+.export-btn {
+  background-color: #f8c9df;
+  color: #b21e8f;
+}
+
+.export-btn:hover {
+  background-color: #f1b7d2;
+}
+
+/* Scrollable modal */
+.large-modal {
+  width: 650px;
+  max-width: 90%;
+  padding: 25px 30px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.large-modal table {
+  flex: 1;
+  overflow-y: auto;
+  display: block;
+  max-height: 55vh;
+}
+
+.large-modal table::-webkit-scrollbar {
+  width: 8px;
+}
+
+.large-modal table::-webkit-scrollbar-thumb {
+  background-color: #d22aa6;
+  border-radius: 8px;
+}
+
+.large-modal table::-webkit-scrollbar-track {
+  background-color: #fce3ef;
+}
+
+/* ========== EXPORT CONFIRMATION MODAL ========== */
+.export-modal {
+  background: #fff;
+  padding: 35px 30px;
+  border-radius: 14px;
+  width: 420px;
+  text-align: center;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease;
+}
+
+.export-modal h2 {
+  color: #b21e8f;
+  margin-bottom: 10px;
+}
+
+.export-modal p {
+  color: #444;
+  font-size: 14px;
+  margin-bottom: 18px;
+}
+
+.export-icon {
+  font-size: 38px;
+  color: #b21e8f;
+  margin-bottom: 15px;
+}
+
+.export-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.confirm-btn,
+.cancel-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.confirm-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.confirm-btn:hover {
+  background-color: #d22aa6;
+}
+
+.cancel-btn {
+  background-color: #ddd;
+  color: #333;
+}
+
+.cancel-btn:hover {
+  background-color: #ccc;
+}
+
+/* =========================================================
+   GRADES MANAGEMENT (PROFESSOR VIEW)
+========================================================= */
+.grades-management {
+  padding: 40px 60px;
+  background: linear-gradient(to bottom right, #fff, #fff6fa);
+  min-height: 100vh;
+}
+
+.grades-management h1 {
+  color: #b21e8f;
+  margin-bottom: 5px;
+}
+
+.grades-management .semester-text {
+  color: #555;
+  margin-bottom: 25px;
+}
+
+.class-dropdown {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.class-dropdown label {
+  font-weight: bold;
+  color: #b21e8f;
+}
+
+.class-dropdown select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  color: #333;
+}
+
+/* Table container */
+.table-wrapper {
+  overflow-x: auto;
+  margin-top: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: #fff;
+}
+
+.table-wrapper table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-wrapper th {
+  background-color: #b21e8f;
+  color: white;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.table-wrapper td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+
+.table-wrapper tr:hover {
+  background-color: #fff6fa;
+}
+
+/* Editable grade field */
+.editable-grade {
+  background-color: #fffafc;
+  border: 1px solid #f0c6da;
+  border-radius: 6px;
+  padding: 6px;
+  width: 70px;
+  text-align: center;
+  color: #333;
+}
+
+/* Save button */
+.save-btn {
+  background-color: #b21e8f;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-top: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.save-btn:hover {
+  background-color: #d22aa6;
+}
+
+/* Confirmation Modal (reuse modal design) */
+.confirm-modal {
+  text-align: center;
+}
+
+.confirm-modal h2 {
+  color: #b21e8f;
+  margin-bottom: 8px;
+}
+
+.confirm-modal p {
+  color: #444;
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+
+.confirm-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.confirm-btn, .cancel-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.confirm-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.confirm-btn:hover {
+  background-color: #d22aa6;
+}
+
+.cancel-btn {
+  background-color: #ddd;
+  color: #333;
+}
+
+.cancel-btn:hover {
+  background-color: #ccc;
+}
+
+/* Success popup */
+.success-popup {
+  display: none;
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  background: #b21e8f;
+  color: #fff;
+  padding: 14px 22px;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  animation: fadeIn 0.3s ease;
+  z-index: 500;
+}
+
+.success-popup i {
+  margin-right: 6px;
+}
+
+/* =========================================================
+   PROFESSOR ANNOUNCEMENTS
+========================================================= */
+.announcement-form {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  padding: 25px 30px;
+  margin-bottom: 35px;
+}
+
+.announcement-form h3 {
+  color: #b21e8f;
+  margin-bottom: 18px;
+}
+
+.announcement-form label {
+  font-weight: bold;
+  color: #b21e8f;
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.announcement-form input,
+.announcement-form textarea,
+.announcement-form select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+}
+
+.announcement-form textarea {
+  resize: vertical;
+}
+
+/* =========================================================
+   PROFESSOR PROFILE PAGE
+========================================================= */
+.profile-wrapper {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  max-width: 850px;
+  margin: 40px auto;
+}
+
+.profile-banner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: linear-gradient(135deg, #f8c9df, #ffffff);
+  padding: 25px 30px;
+}
+
+.profile-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 6px rgba(0,0,0,0.1);
+  object-fit: cover;
+}
+
+.profile-basic h2 {
+  color: #b21e8f;
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.profile-basic p {
+  color: #444;
+  font-size: 14px;
+}
+
+.profile-details {
+  display: flex;
+  justify-content: space-between;
+  padding: 30px 40px;
+  flex-wrap: wrap;
+}
+
+.profile-column {
+  flex: 1 1 320px;
+  margin-bottom: 20px;
+}
+
+.profile-column h3 {
+  color: #b21e8f;
+  font-size: 17px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-column p {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.profile-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px 0 30px;
+  border-top: 1px solid #eee;
+}
+
+.edit-btn, .change-btn {
+  background-color: #b21e8f;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.edit-btn:hover, .change-btn:hover {
+  background-color: #d22aa6;
+}
+
+/* =========================================================
+   PROFILE MODAL ALIGNMENT FIX
+========================================================= */
+.modal-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-content label {
+  font-weight: bold;
+  color: #b21e8f;
+  margin-bottom: 3px;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="email"],
+.modal-content input[type="password"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.modal-content .save-btn {
+  align-self: center;
+  margin-top: 10px;
+  padding: 10px 18px;
+  background-color: #b21e8f;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.modal-content .save-btn:hover {
+  background-color: #d22aa6;
+}
+/* =========================================================
+   CHANGE PASSWORD MODAL – MATCH EDIT PROFILE STYLE
+========================================================= */
+.modal-content.password-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 35px 40px;
+  width: 420px;
+  max-width: 90%;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Header */
+.password-modal .modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.password-modal .modal-header i {
+  font-size: 38px;
+  color: #b21e8f;
+  margin-bottom: 8px;
+}
+
+.password-modal .modal-header h2 {
+  color: #b21e8f;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+/* Form layout */
+.password-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  text-align: left;
+}
+
+.password-modal label {
+  font-weight: bold;
+  font-size: 14px;
+  color: #b21e8f;
+}
+
+.password-modal input[type="password"] {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.password-modal input:focus {
+  border-color: #b21e8f;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(178, 30, 143, 0.15);
+}
+
+/* Buttons */
+.password-modal .button-group {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.password-modal .update-btn,
+.password-modal .cancel-btn {
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  width: 150px;
+  height: 42px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.password-modal .update-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.password-modal .update-btn:hover {
+  background-color: #d22aa6;
+}
+
+.password-modal .cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+
+.password-modal .cancel-btn:hover {
+  background-color: #f3c3dc;
+}
+
+/* Close button */
+.password-modal .close {
+  position: absolute;
+  right: 20px;
+  top: 18px;
+  font-size: 22px;
+  color: #b21e8f;
+  cursor: pointer;
+}
+
+/* =========================================================
+   PROFESSOR PROFILE MODALS (MATCH STUDENTVIEW DESIGN)
+========================================================= */
+
+/* Shared modal base */
+.modal.profile-modal,
+.modal.password-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  backdrop-filter: blur(3px);
+}
+
+/* Container */
+.modal-content.profile-modal,
+.modal-content.password-modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.15);
+  width: 420px;
+  max-width: 90%;
+  padding: 30px 35px;
+  text-align: center;
+  animation: fadeIn 0.25s ease;
+  position: relative;
+}
+
+/* Header section */
+.profile-modal .modal-header,
+.password-modal .modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.profile-modal .modal-header i,
+.password-modal .modal-header i {
+  font-size: 38px;
+  color: #b21e8f;
+  margin-bottom: 8px;
+}
+
+.profile-modal .modal-header h2,
+.password-modal .modal-header h2 {
+  color: #b21e8f;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+/* Form design */
+.profile-modal form,
+.password-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.profile-modal label,
+.password-modal label {
+  font-weight: bold;
+  font-size: 14px;
+  color: #b21e8f;
+}
+
+.profile-modal input,
+.password-modal input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.profile-modal input:focus,
+.password-modal input:focus {
+  border-color: #b21e8f;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(178, 30, 143, 0.15);
+}
+
+/* Button group */
+.modal-buttons,
+.profile-modal .button-group,
+.password-modal .button-group {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.modal-buttons button,
+.profile-modal button,
+.password-modal button {
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  width: 150px;
+  height: 42px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-buttons .confirm-btn,
+.profile-modal .save-btn,
+.password-modal .update-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.modal-buttons .confirm-btn:hover,
+.profile-modal .save-btn:hover,
+.password-modal .update-btn:hover {
+  background-color: #d22aa6;
+}
+
+.modal-buttons .cancel-btn,
+.profile-modal .cancel-btn,
+.password-modal .cancel-btn {
+  background-color: #f8c9df;
+  color: #b21e8f;
+}
+
+.modal-buttons .cancel-btn:hover,
+.profile-modal .cancel-btn:hover,
+.password-modal .cancel-btn:hover {
+  background-color: #f3bcd6;
+}
+
+/* Close button (X) */
+.profile-modal .close,
+.password-modal .close {
+  position: absolute;
+  right: 20px;
+  top: 18px;
+  font-size: 22px;
+  color: #b21e8f;
+  cursor: pointer;
+}
+
+/* ✅ FINAL & CLEAN: Professor Edit Profile / Change Password Modal Buttons */
+.profile-modal .button-group,
+.password-modal .button-group {
+  display: flex;
+  justify-content: center;
+  align-items: center; /* true baseline alignment */
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.profile-modal .save-btn,
+.profile-modal .cancel-btn,
+.password-modal .save-btn,
+.password-modal .cancel-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 155px;
+  height: 45px;
+  padding: 0;
+  margin: 0;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: normal;
+}
+
+/* consistent colors */
+.profile-modal .save-btn,
+.password-modal .save-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.profile-modal .save-btn:hover,
+.password-modal .save-btn:hover {
+  background-color: #d22aa6;
+}
+
+.profile-modal .cancel-btn,
+.password-modal .cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+
+.profile-modal .cancel-btn:hover,
+.password-modal .cancel-btn:hover {
+  background-color: #f3c3dc;
+}
+
+/* =========================================================
+   UPDATED PROFESSOR CHANGE PASSWORD + LOGOUT MODALS 
+   (Match StudentView UI)
+========================================================= */
+
+/* Shared Modal Background */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(249, 234, 243, 0.7); /* soft pink overlay */
+  backdrop-filter: blur(3px);
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  animation: fadeIn 0.25s ease;
+}
+
+/* ---------- CHANGE PASSWORD MODAL ---------- */
+.modal-content.password-modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.15);
+  width: 420px;
+  max-width: 90%;
+  padding: 30px 35px;
+  text-align: center;
+  position: relative;
+}
+
+/* Header */
+.password-modal .modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.password-modal .modal-header i {
+  font-size: 38px;
+  color: #b21e8f;
+  margin-bottom: 8px;
+}
+
+.password-modal .modal-header h2 {
+  color: #b21e8f;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+/* Form */
+.password-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.password-modal label {
+  font-weight: bold;
+  font-size: 14px;
+  color: #b21e8f;
+}
+
+.password-modal input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.password-modal input:focus {
+  border-color: #b21e8f;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(178, 30, 143, 0.15);
+}
+
+/* Buttons (shared with profile modal) */
+.password-modal .button-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.password-modal .save-btn,
+.password-modal .cancel-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 155px;
+  height: 45px;
+  padding: 0;
+  margin: 0;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: normal;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.password-modal .save-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.password-modal .save-btn:hover {
+  background-color: #d22aa6;
+}
+
+.password-modal .cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+
+.password-modal .cancel-btn:hover {
+  background-color: #f3c3dc;
+}
+
+/* Close button (X) */
+.password-modal .close {
+  position: absolute;
+  right: 20px;
+  top: 18px;
+  font-size: 22px;
+  color: #b21e8f;
+  cursor: pointer;
+}
+
+/* ---------- LOGOUT MODAL ---------- */
+.modal-content.logout-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 50px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  width: 380px;
+  max-width: 90%;
+}
+
+.logout-icon {
+  color: #b21e8f;
+  font-size: 36px;
+  margin-bottom: 15px;
+}
+
+.logout-modal h3 {
+  color: #b21e8f;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.logout-modal p {
+  color: #444;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+.logout-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.logout-buttons .confirm-btn,
+.logout-buttons .cancel-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  width: 130px;
+  height: 44px;
+}
+
+.logout-buttons .confirm-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.logout-buttons .confirm-btn:hover {
+  background-color: #d22aa6;
+  transform: translateY(-1px);
+}
+
+.logout-buttons .cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+
+.logout-buttons .cancel-btn:hover {
+  background-color: #f3c3dc;
+  transform: translateY(-1px);
+}
+
+/* Fade animation (shared) */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* =========================================================
+   UPDATED PROFESSOR CHANGE PASSWORD + LOGOUT MODALS (FINAL)
+   Matches StudentView Design — Centered Header, No Logout Icon
+========================================================= */
+
+/* Shared Modal Background */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(249, 234, 243, 0.7); /* soft pink overlay */
+  backdrop-filter: blur(3px);
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  animation: fadeIn 0.25s ease;
+}
+
+/* ---------- CHANGE PASSWORD MODAL ---------- */
+.modal-content.password-modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.15);
+  width: 420px;
+  max-width: 90%;
+  padding: 35px 40px;
+  text-align: center;
+  position: relative;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Header (Centered Icon & Title) */
+.password-modal .modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.password-modal .modal-header i {
+  font-size: 42px;
+  color: #b21e8f;
+  margin-bottom: 10px;
+}
+
+.password-modal .modal-header h2 {
+  color: #b21e8f;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+/* Form */
+.password-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.password-modal label {
+  font-weight: bold;
+  font-size: 14px;
+  color: #b21e8f;
+}
+
+.password-modal input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.password-modal input:focus {
+  border-color: #b21e8f;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(178, 30, 143, 0.15);
+}
+
+/* Buttons (shared with Edit Profile modal) */
+.password-modal .button-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.password-modal .save-btn,
+.password-modal .cancel-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 155px;
+  height: 45px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.password-modal .save-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.password-modal .save-btn:hover {
+  background-color: #d22aa6;
+}
+
+.password-modal .cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+
+.password-modal .cancel-btn:hover {
+  background-color: #f3c3dc;
+}
+
+/* Close button (X) */
+.password-modal .close {
+  position: absolute;
+  right: 20px;
+  top: 18px;
+  font-size: 22px;
+  color: #b21e8f;
+  cursor: pointer;
+}
+
+/* ---------- LOGOUT MODAL ---------- */
+.modal-content.logout-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 50px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  width: 380px;
+  max-width: 90%;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Removed logout icon — clean confirmation style */
+.logout-modal h3 {
+  color: #b21e8f;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.logout-modal p {
+  color: #444;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+/* Buttons */
+.logout-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.logout-buttons .confirm-btn,
+.logout-buttons .cancel-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  width: 130px;
+  height: 44px;
+}
+
+.logout-buttons .confirm-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.logout-buttons .confirm-btn:hover {
+  background-color: #d22aa6;
+  transform: translateY(-1px);
+}
+
+.logout-buttons .cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+
+.logout-buttons .cancel-btn:hover {
+  background-color: #f3c3dc;
+  transform: translateY(-1px);
+}
+
+/* Fade animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+
+/* =========================================================
+   FINALIZED PROFESSOR CHANGE PASSWORD + LOGOUT MODALS
+   (MATCHED TO STUDENTVIEW UI – CENTERED & POLISHED)
+========================================================= */
+
+/* Shared Modal Overlay */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(249, 234, 243, 0.7); /* soft pink overlay */
+  backdrop-filter: blur(3px);
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  animation: fadeIn 0.25s ease;
+}
+
+/* ---------------- CHANGE PASSWORD MODAL ---------------- */
+.modal-content.password-modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  width: 420px;
+  max-width: 90%;
+  padding: 40px 45px;
+  text-align: center;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Header (Center aligned perfectly) */
+.password-modal .modal-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.password-modal .modal-header i {
+  font-size: 45px;
+  color: #b21e8f;
+  margin-bottom: 12px;
+}
+
+.password-modal .modal-header h2 {
+  color: #b21e8f;
+  font-size: 22px;
+  font-weight: bold;
+  margin: 0;
+}
+
+/* Form Inputs */
+.password-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+}
+
+.password-modal label {
+  font-weight: bold;
+  font-size: 14px;
+  color: #b21e8f;
+}
+
+.password-modal input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.password-modal input:focus {
+  border-color: #b21e8f;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(178, 30, 143, 0.15);
+}
+
+/* Buttons (Save / Cancel) */
+.password-modal .button-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.password-modal .save-btn,
+.password-modal .cancel-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 155px;
+  height: 45px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.password-modal .save-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.password-modal .save-btn:hover {
+  background-color: #d22aa6;
+}
+
+.password-modal .cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+
+.password-modal .cancel-btn:hover {
+  background-color: #f3c3dc;
+}
+
+/* Close button */
+.password-modal .close {
+  position: absolute;
+  right: 20px;
+  top: 18px;
+  font-size: 22px;
+  color: #b21e8f;
+  cursor: pointer;
+}
+
+/* ---------------- LOGOUT MODAL ---------------- */
+.modal-content.logout-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 50px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  width: 380px;
+  max-width: 90%;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Keep the logo/icon centered */
+.logout-icon {
+  color: #b21e8f;
+  font-size: 40px;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Logout Text */
+.logout-modal h3 {
+  color: #b21e8f;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.logout-modal p {
+  color: #444;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+/* Buttons */
+.logout-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.logout-buttons .confirm-btn,
+.logout-buttons .cancel-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  width: 130px;
+  height: 44px;
+}
+
+.logout-buttons .confirm-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.logout-buttons .confirm-btn:hover {
+  background-color: #d22aa6;
+  transform: translateY(-1px);
+}
+
+.logout-buttons .cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+
+.logout-buttons .cancel-btn:hover {
+  background-color: #f3c3dc;
+  transform: translateY(-1px);
+}
+
+/* Fade animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* =========================================================
+   PROFESSOR ANNOUNCEMENTS FIX (Match AdminView Layout)
+========================================================= */
+.announcement-form {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  padding: 25px 30px;
+  margin-bottom: 35px;
+}
+
+.announcement-form h3 {
+  color: #b21e8f;
+  font-size: 20px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.announcement-form label {
+  font-weight: bold;
+  color: #b21e8f;
+  font-size: 14px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.announcement-form input,
+.announcement-form textarea,
+.announcement-form select {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+}
+
+.announcement-form .save-btn {
+  background-color: #b21e8f;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.announcement-form .save-btn:hover {
+  background-color: #d22aa6;
+}
+
+/* --- Fix announcement card button alignment --- */
+.announcement-card .card-actions {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.announcement-card .card-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+/* Button colors (match AdminView) */
+.details-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+.details-btn:hover { background-color: #d22aa6; }
+
+.edit-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+}
+.edit-btn:hover { background-color: #f3c3dc; }
+
+.delete-btn {
+  background-color: #f8c9df;
+  color: #b21e8f;
+}
+.delete-btn:hover { background-color: #f3bcd6; }
+
+/* Slight lift on hover */
+.announcement-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Section dropdown spacing fix */
+.announcement-form select {
+  background-color: #fff;
+  appearance: none;
+}
+
+
+/* =========================================================
+   FIX: Force Delete Button Styling (ProfessorView)
+========================================================= */
+.announcement-card .card-actions .delete-btn {
+  background-color: #f8c9df !important;   /* CEU light pink */
+  color: #b21e8f !important;              /* CEU magenta text */
+  border: none !important;
+  border-radius: 6px !important;
+  height: 32px !important;
+  padding: 0 14px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.announcement-card .card-actions .delete-btn:hover {
+  background-color: #f3bcd6 !important;   /* darker pink hover */
+}
+
+/* =========================================================
+   PROFESSORVIEW – Match AdminView Button Size & Alignment
+========================================================= */
+.announcement-card .card-actions {
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+}
+
+.announcement-card .card-actions button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 32px !important;
+  padding: 0 14px !important;
+  line-height: 1 !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  border: none !important;
+  transition: background-color 0.2s ease !important;
+}
+
+/* View Details (raised slightly) */
+.announcement-card .card-actions .details-btn {
+  background-color: #b21e8f !important;
+  color: #fff !important;
+  position: relative !important;
+  top: -0px !important;
+}
+.announcement-card .card-actions .details-btn:hover {
+  background-color: #d22aa6 !important;
+}
+
+/* Edit */
+.announcement-card .card-actions .edit-btn {
+  background-color: #f9d4e7 !important;
+  color: #b21e8f !important;
+}
+.announcement-card .card-actions .edit-btn:hover {
+  background-color: #f3c3dc !important;
+}
+
+/* Delete */
+.announcement-card .card-actions .delete-btn {
+  background-color: #f8c9df !important;
+  color: #b21e8f !important;
+}
+.announcement-card .card-actions .delete-btn:hover {
+  background-color: #f3bcd6 !important;
+}
+
+/* =========================================================
+   PROFESSORVIEW — Force Match with AdminView Buttons
+========================================================= */
+.announcement-card .card-actions {
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+}
+
+/* Full reset for all buttons */
+.announcement-card .card-actions button {
+  all: unset !important; /* remove all browser defaults */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 34px !important; /* matches AdminView */
+  padding: 0 16px !important;
+  border-radius: 6px !important;
+  font-family: "Arial", sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+  transition: background-color 0.2s ease !important;
+  border: none !important;
+}
+
+/* View Details */
+.announcement-card .card-actions .details-btn {
+  background-color: #b21e8f !important;
+  color: #fff !important;
+  position: relative !important;
+  top: 0px !important; /* match alignment with AdminView */
+}
+.announcement-card .card-actions .details-btn:hover {
+  background-color: #d22aa6 !important;
+}
+
+/* Edit */
+.announcement-card .card-actions .edit-btn {
+  background-color: #f9d4e7 !important;
+  color: #b21e8f !important;
+}
+.announcement-card .card-actions .edit-btn:hover {
+  background-color: #f3c3dc !important;
+}
+
+/* Delete */
+.announcement-card .card-actions .delete-btn {
+  background-color: #f8c9df !important;
+  color: #b21e8f !important;
+}
+.announcement-card .card-actions .delete-btn:hover {
+  background-color: #f3bcd6 !important;
+}
+
+/* Make icons consistent with text */
+.announcement-card .card-actions i {
+  margin-right: 6px !important;
+  font-size: 14px !important;
+}
+
+/* Make Edit Profile button match Change Password */
+.profile-actions .edit-btn {
+  background-color: #b21e8f !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.profile-actions .edit-btn:hover {
+  background-color: #d22aa6 !important;
+}
+
+/* Slightly enlarge Delete button for better emphasis */
+.announcement-card .card-actions .delete-btn {
+  background-color: #f8c9df !important;
+  color: #b21e8f !important;
+  height: 36px !important;       /* +2px taller */
+  padding: 0 18px !important;    /* +2px wider */
+  font-size: 13.5px !important;  /* slightly larger text */
+  font-weight: 700 !important;   /* make label a bit bolder */
+}
+
+.announcement-card .card-actions .delete-btn:hover {
+  background-color: #f3bcd6 !important;
+}
+
+/* =========================================================
+   PROFESSOR VIEW - UPDATED FRONTEND STYLES
+   Unified with AdminView for Modal & Announcement Layout
+========================================================= */
+
+/* ========== GLOBAL RESET ========== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+html, body {
+  height: 100%;
+  background-color: #fff;
+}
+
+/* =========================================================
+   PORTAL LAYOUT
+========================================================= */
+.portal-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 190px;
+  background: linear-gradient(to bottom, #f8c9df, #ffffff);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+}
+
+.sidebar-header {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.sidebar-logo {
+  width: 100px;
+  height: auto;
+  object-fit: contain;
+}
+
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-menu a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #b21e8f;
+  text-decoration: none;
+  padding: 12px 20px; /* match student */
+  font-size: 14px; /* match student */
+  transition: all 0.25s ease;
+}
+
+.sidebar-menu a:hover {
+  background-color: rgba(242, 191, 220, 0.4);
+  transform: scale(1.02);
+}
+
+.sidebar-menu a.active {
+  background-color: #fff;
+  border-left: 4px solid #b21e8f; /* match student */
+  font-weight: bold;
+}
+.sidebar-footer {
+  padding: 15px 20px;
+}
+
+.sidebar-footer a {
+  color: #b21e8f;
+  text-decoration: none;
+  font-size: 14px; /* match student */
+}
+
+/* =========================================================
+   TOPBAR & MAIN CONTENT
+========================================================= */
+.main-content {
+  margin-left: 190px;
+  width: calc(100% - 190px);
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 25px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.search-container {
+  position: relative;
+  width: 260px;
+}
+
+.search-bar {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+}
+
+.search-icon {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  color: #b21e8f;
+}
+
+.profile-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-name {
+  color: #b21e8f;
+  font-weight: bold;
+}
+
+/* =========================================================
+   DASHBOARD BODY & SUMMARY CARDS
+========================================================= */
+.dashboard-body {
+  padding: 40px 60px;
+  background: linear-gradient(to bottom right, #fff, #fff6fa);
+  min-height: 100vh;
+}
+
+.dashboard-body h1 {
+  color: #b21e8f;
+  margin-bottom: 5px;
+}
+
+.semester-text {
+  color: #555;
+  margin-bottom: 25px;
+}
+
+.summary-container {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 20px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.summary-card {
+  flex: 1 1 250px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+  padding: 18px 20px;
+  color: #b21e8f;
+  transition: all 0.2s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.summary-card h4 {
+  font-size: 15px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.summary-card p {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* =========================================================
+   PROFESSOR ANNOUNCEMENTS (MATCH ADMINVIEW)
+========================================================= */
+.announcement-form {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  padding: 25px 30px;
+  margin-bottom: 35px;
+}
+
+.announcement-form h3 {
+  color: #b21e8f;
+  margin-bottom: 18px;
+}
+
+.announcement-form label {
+  font-weight: bold;
+  color: #b21e8f;
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.announcement-form input,
+.announcement-form textarea,
+.announcement-form select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+}
+
+.announcement-form textarea {
+  resize: vertical;
+}
+
+.announcement-form .save-btn {
+  background-color: #b21e8f;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.announcement-form .save-btn:hover {
+  background-color: #d22aa6;
+}
+
+/* =========================================================
+   ANNOUNCEMENT CARDS & ACTION BUTTONS
+========================================================= */
+.announcement-card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 18px;
+  transition: all 0.2s ease;
+}
+
+.announcement-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  background-color: #fff6fa;
+}
+
+.announcement-card h3 {
+  color: #b21e8f;
+  font-size: 17px;
+  margin-bottom: 6px;
+}
+
+.announce-date {
+  font-size: 13px;
+  color: #777;
+  margin-bottom: 10px;
+}
+
+.announce-preview {
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+/* Buttons */
+.announcement-card .card-actions {
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+}
+
+.announcement-card .card-actions button {
+  all: unset !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 34px !important;
+  padding: 0 16px !important;
+  border-radius: 6px !important;
+  font-family: "Arial", sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+  transition: background-color 0.2s ease !important;
+  border: none !important;
+}
+
+.announcement-card .card-actions button i {
+  margin-right: 6px !important;
+  font-size: 14px !important;
+}
+
+/* Button Colors */
+.announcement-card .card-actions .details-btn {
+  background-color: #b21e8f !important;
+  color: #fff !important;
+}
+.announcement-card .card-actions .details-btn:hover {
+  background-color: #d22aa6 !important;
+}
+
+.announcement-card .card-actions .edit-btn {
+  background-color: #f9d4e7 !important;
+  color: #b21e8f !important;
+}
+.announcement-card .card-actions .edit-btn:hover {
+  background-color: #f3c3dc !important;
+}
+
+.announcement-card .card-actions .delete-btn {
+  background-color: #f8c9df !important;
+  color: #b21e8f !important;
+  height: 36px !important;
+  padding: 0 18px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+}
+.announcement-card .card-actions .delete-btn:hover {
+  background-color: #f3bcd6 !important;
+}
+
+/* =========================================================
+   EDIT & DELETE MODALS - MATCH ADMINVIEW
+========================================================= */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(249, 234, 243, 0.7); /* CEU pink overlay */
+  justify-content: center;
+  align-items: center;
+  z-index: 300;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 14px;
+  padding: 30px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  width: 420px;
+  max-width: 90%;
+  animation: fadeIn 0.25s ease;
+  position: relative;
+}
+
+/* Modal Title & Text */
+.modal-content h2 {
+  color: #b21e8f;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.modal-content p {
+  color: #444;
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+/* Input fields */
+.modal-content label {
+  color: #b21e8f;
+  font-weight: bold;
+  font-size: 14px;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.modal-content input,
+.modal-content textarea,
+.modal-content select {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+/* Buttons inside modal */
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.confirm-btn {
+  background-color: #b21e8f;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.confirm-btn:hover {
+  background-color: #d22aa6;
+}
+
+.cancel-btn {
+  background-color: #f9d4e7;
+  color: #b21e8f;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.cancel-btn:hover {
+  background-color: #f3c3dc;
+}
+
+/* Close button (X) */
+.close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 22px;
+  color: #b21e8f;
+  cursor: pointer;
+}
+.close:hover {
+  color: #d22aa6;
+}
+
+/* Delete modal override */
+.delete-modal {
+  background: #fff;
+  border-radius: 14px;
+  padding: 30px;
+  text-align: center;
+  width: 420px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+.delete-modal h2 {
+  text-align: center;
+  margin-bottom: 12px;
+  color: #b21e8f;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   PROFVIEW — ANNOUNCEMENTS MODAL FIX (Append-only)
+   Scope to announcements area so other modals (profile/logout)
+   keep their own styles.
+========================================================= */
+
+/* Overlay: match AdminView (soft pink + blur) */
+.announcements-section .modal {
+  background: rgba(249, 234, 243, 0.7) !important;
+  backdrop-filter: blur(4px) !important;
+  display: none;                 /* kept for your JS toggling */
+  position: fixed;
+  inset: 0;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;                  /* above page chrome */
+}
+
+/* Container: same width, padding, radius, shadow as admin */
+.announcements-section .modal .modal-content {
+  background: #fff !important;
+  width: 420px !important;       /* admin width */
+  max-width: 90% !important;
+  padding: 30px !important;
+  border-radius: 14px !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15) !important;
+  position: relative;
+  animation: fadeIn 0.25s ease;
+}
+
+/* Title + body text centering (fixes off-center “Delete Announcement”) */
+.announcements-section .modal .modal-content h2 {
+  color: #b21e8f;
+  text-align: center !important;
+  margin-bottom: 10px !important;
+}
+.announcements-section .modal .modal-content p {
+  color: #444;
+  font-size: 14px;
+  text-align: center !important;
+  margin-bottom: 18px !important;
+}
+
+/* Form labels + fields (spacing & consistency) */
+.announcements-section .modal .modal-content label {
+  display: block;
+  color: #b21e8f;
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+.announcements-section .modal .modal-content input,
+.announcements-section .modal .modal-content textarea,
+.announcements-section .modal .modal-content select {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+}
+
+/* Buttons: equal size, centered row */
+.announcements-section .modal .modal-buttons,
+.announcements-section .modal .button-group {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-top: 10px !important;
+}
+.announcements-section .modal .confirm-btn,
+.announcements-section .modal .save-btn,
+.announcements-section .modal .cancel-btn {
+  min-width: 150px !important;
+  height: 44px !important;
+  padding: 0 18px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+}
+.announcements-section .modal .confirm-btn,
+.announcements-section .modal .save-btn {
+  background-color: #b21e8f !important;
+  color: #fff !important;
+}
+.announcements-section .modal .confirm-btn:hover,
+.announcements-section .modal .save-btn:hover {
+  background-color: #d22aa6 !important;
+}
+.announcements-section .modal .cancel-btn {
+  background-color: #f9d4e7 !important;
+  color: #b21e8f !important;
+}
+.announcements-section .modal .cancel-btn:hover {
+  background-color: #f3c3dc !important;
+}
+
+/* Close (X) position & color */
+.announcements-section .modal .close {
+  position: absolute !important;
+  top: 12px !important;
+  right: 16px !important;
+  font-size: 22px !important;
+  color: #b21e8f !important;
+  cursor: pointer;
+}
+.announcements-section .modal .close:hover { color: #d22aa6 !important; }
+
+/* Ensure Delete modal uses same size as Edit (fix for “bigger” look) */
+.announcements-section .modal .delete-modal,
+.announcements-section .modal.delete-modal .modal-content {
+  width: 420px !important;
+  max-width: 90% !important;
+  text-align: center;
+}
+
+/* =========================================================
+   🔧 FIX: Align Save / Cancel Buttons in Announcement Modals
+   (forces both buttons to share same baseline & spacing)
+========================================================= */
+
+.modal-buttons,
+.button-group {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-top: 15px !important;
+}
+
+.modal-buttons button,
+.button-group button {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 155px !important;
+  height: 45px !important;
+  border-radius: 8px !important;
+  box-sizing: border-box !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: normal !important;
+}
+
+/* keep CEU color scheme */
+.modal-buttons .save-btn,
+.button-group .save-btn {
+  background-color: #b21e8f !important;
+  color: #fff !important;
+  border: none !important;
+}
+.modal-buttons .save-btn:hover,
+.button-group .save-btn:hover {
+  background-color: #d22aa6 !important;
+}
+
+.modal-buttons .cancel-btn,
+.button-group .cancel-btn {
+  background-color: #f9d4e7 !important;
+  color: #b21e8f !important;
+  border: none !important;
+}
+.modal-buttons .cancel-btn:hover,
+.button-group .cancel-btn:hover {
+  background-color: #f3c3dc !important;
+}
+
+/* ======= LOGOUT MODAL FIX (Instant Overlay) ======= */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  backdrop-filter: blur(3px);
+  transition: none !important; /* <-- Makes overlay appear instantly */
+  animation: none !important;  /* <-- Disable any inherited fade-in */
+}
+
+.logout-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 50px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.25s ease; /* Only the box fades in */
+  width: 380px;
+  max-width: 90%;
+}
+
+.logout-icon {
+  color: #b21e8f;
+  font-size: 36px;
+  margin-bottom: 15px;
+}
+
+.logout-modal h3 {
+  color: #b21e8f;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.logout-modal p {
+  color: #444;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+.logout-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.confirm-btn, .cancel-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.confirm-btn {
+  background-color: #b21e8f;
+  color: #fff;
+}
+
+.confirm-btn:hover {
+  background-color: #d22aa6;
+  transform: translateY(-1px);
+}
+
+.cancel-btn {
+  background-color: #f2f2f2;
+  color: #555;
+}
+
+.cancel-btn:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-1px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ===== PROFILE STATUS MESSAGE if one changes their pfp or password ===== */
+.profile-message {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: 12px;
+  margin-bottom: 25px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+.profile-message.success {
+  color: #0c6b24;
+  background-color: #d8f5e1;
+}
+
+.profile-message.error {
+  color: #b21e1e;
+  background-color: #fbdada;
+}

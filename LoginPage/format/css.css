@@ -1,0 +1,107 @@
+/* Import a few test fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@600&display=swap');
+
+/* Reset + centering */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f8c9df;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Center but slightly lifted */
+.content {
+  text-align: center;
+  transform: translateY(-50px); /* 👈 raises everything 50px upward */
+}
+
+
+
+/* Outer wrapper that ensures center alignment */
+.center-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+/* Inner content (title, logo, box) */
+.content {
+  text-align: center;
+}
+
+/* Title above the logo */
+.title {
+  font-size: 69px;
+  font-weight: bold;
+  color: #b21e8f;
+  margin-bottom: 5px;
+  font-family: 'Playfair Display', serif; /* 👈 change this to test */
+}
+
+/* Circular CEU logo */
+.logo {
+  width: 210px;
+  height: 351px;
+  display: block;
+  margin: 0 auto 10px auto; /* ↓ reduce this value */
+}
+
+
+.login-box {
+  width: 350px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+  padding: 25px 30px 30px;
+  margin: 40px auto 0 auto; /* 👈 adds space ABOVE only */
+  text-align: center;
+}
+
+
+/* Inputs inside box */
+.login-box input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+}
+
+/* Login button */
+.login-btn {
+  width: 100%;
+  background-color: #b21e8f;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.login-btn:hover {
+  background-color: #d22aa6;
+}
+
+/* Error message */
+.error {
+  color: red;
+  font-size: 14px;
+  margin-top: 10px;
+}
