@@ -243,13 +243,32 @@ $avatar = (!empty($profile_pic))
         <input type="hidden" name="change_password" value="1">
 
         <label>Current Password</label>
-        <input type="password" name="current_password" required>
+        <input 
+  type="password" 
+  name="current_password" 
+  required 
+  autocomplete="new-password"
+  placeholder="Enter current password"
+/>
+
 
         <label>New Password</label>
-        <input type="password" name="new_password" required>
+        <input 
+  type="password" 
+  name="new_password" 
+  required 
+  autocomplete="new-password"
+/>
+
 
         <label>Confirm New Password</label>
-        <input type="password" name="confirm_password" required>
+        <input 
+  type="password" 
+  name="confirm_password" 
+  required 
+  autocomplete="new-password"
+/>
+
 
         <div class="button-group">
           <button type="submit" class="save-btn">Update Password</button>
