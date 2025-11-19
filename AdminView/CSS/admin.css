@@ -2419,6 +2419,10 @@ body {
   gap: 14px;
 }
 
+.save-btn, .update-btn {
+    white-space: nowrap;
+}
+
 
 
 
