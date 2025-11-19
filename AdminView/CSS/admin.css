@@ -2423,6 +2423,31 @@ body {
     white-space: nowrap;
 }
 
+/* ===== PROFILE STATUS MESSAGE ===== */
+.profile-message {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: 12px;
+  margin-bottom: 25px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.profile-message.success {
+  color: #0c6b24;
+  background-color: #d8f5e1;
+}
+
+.profile-message.error {
+  color: #b21e1e;
+  background-color: #fbdada;
+}
+
 
 
 
