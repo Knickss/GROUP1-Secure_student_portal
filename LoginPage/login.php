@@ -1,8 +1,21 @@
 <?php
+// -------------------------------------------
+// SECURE COOKIE SETTINGS — MUST COME FIRST
+// -------------------------------------------
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'domain' => '',
+    'secure' => false,   // set to true when deployed with HTTPS
+    'httponly' => true,
+    'samesite' => 'Strict'
+]);
+
 session_start();
+
 require_once("../config/db_connect.php");
-require_once("../includes/security.php");     // NEW: sanitization
-require_once("../includes/mail_otp.php");     // existing 2FA email
+require_once("../includes/security.php");
+require_once("../includes/mail_otp.php");
 
 $error = "";
 
@@ -17,11 +30,9 @@ if ($_SESSION['login_attempts'] >= 8) {
         $_SESSION['lockout_time'] = time();
     }
 
-    // Lockout for 1 minute
     if (time() - $_SESSION['lockout_time'] < 60) {
-        // Skip the rest of the login code
+        // still locked out
     } else {
-        // Reset counter after cooldown
         $_SESSION['login_attempts'] = 0;
         unset($_SESSION['lockout_time']);
     }
