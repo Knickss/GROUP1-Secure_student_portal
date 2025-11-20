@@ -3,6 +3,24 @@ include("../includes/auth_session.php");
 include("../config/db_connect.php");
 
 /* ---------------------------------------------------------
+   ADMIN INFO (for topbar avatar + name)
+--------------------------------------------------------- */
+$user_id   = $_SESSION['user_id'];
+$full_name = $_SESSION['full_name'] ?? 'Administrator';
+
+// Fetch profile picture for this admin
+$stmt = $conn->prepare("SELECT profile_pic FROM users WHERE user_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($profile_pic);
+$stmt->fetch();
+$stmt->close();
+
+$avatar = (!empty($profile_pic))
+    ? "../uploads/" . $profile_pic
+    : "images/ProfileImg.png";
+
+/* ---------------------------------------------------------
    HELPER: Build query strings safely
 --------------------------------------------------------- */
 function build_query(array $overrides = []): string {
@@ -187,7 +205,6 @@ if ($course_id > 0) {
 <link rel="stylesheet" href="CSS/format.css">
 <link rel="stylesheet" href="CSS/admin.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
 </head>
 
 <body>
@@ -198,15 +215,13 @@ if ($course_id > 0) {
 <main class="main-content">
 
 <header class="topbar">
-    <form class="search-container">
-        <input type="text" class="search-bar" placeholder="Enrollment Page" disabled>
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-    </form>
+
+    <!-- No search bar in topbar -->
+    <div class="topbar-left"></div>
 
     <div class="profile-section">
-        <img src="images/ProfileImg.png" class="avatar">
-        <span class="profile-name">System Administrator</span>
-        <i class="fa-solid fa-chevron-down dropdown-icon"></i>
+        <img src="<?= htmlspecialchars($avatar); ?>" class="avatar" alt="User Avatar">
+        <span class="profile-name"><?= htmlspecialchars($full_name); ?></span>
     </div>
 </header>
 
@@ -229,7 +244,7 @@ if ($course_id > 0) {
         <?php foreach ($courses as $c): ?>
         <option value="<?= $c['course_id']; ?>"
             <?= ($course_id == $c['course_id']) ? "selected" : ""; ?>>
-            <?= htmlspecialchars($c['course_code'] . " — " . $c['course_name']); ?>
+            <?= htmlspecialchars($c['course_code'] . ' — ' . $c['course_name']); ?>
         </option>
         <?php endforeach; ?>
 
@@ -261,17 +276,17 @@ if ($course_id > 0) {
     </div>
 
     <div class="enroll-course-meta">
-        <?php if ($currentCourse["teacher_name"]): ?>
+        <?php if (!empty($currentCourse["teacher_name"])): ?>
             <span><strong>Teacher:</strong> <?= htmlspecialchars($currentCourse["teacher_name"]); ?></span>
         <?php endif; ?>
 
-        <?php if ($currentCourse["semester"]): ?>
+        <?php if (!empty($currentCourse["semester"])): ?>
             <span><strong>Semester:</strong> <?= htmlspecialchars($currentCourse["semester"]); ?></span>
         <?php endif; ?>
 
-        <?php if ($currentCourse["schedule_day"] || $currentCourse["schedule_time"]): ?>
+        <?php if (!empty($currentCourse["schedule_day"]) || !empty($currentCourse["schedule_time"])): ?>
             <span><strong>Schedule:</strong>
-                <?= htmlspecialchars(trim($currentCourse["schedule_day"] . " " . $currentCourse["schedule_time"])); ?>
+                <?= htmlspecialchars(trim(($currentCourse["schedule_day"] ?? '') . ' ' . ($currentCourse["schedule_time"] ?? ''))); ?>
             </span>
         <?php endif; ?>
     </div>
