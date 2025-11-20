@@ -2,7 +2,28 @@
 include("../includes/auth_session.php");
 include("../config/db_connect.php");
 
-// ---------- HELPERS ----------
+// =======================
+// FETCH ADMIN INFO
+// =======================
+$user_id   = $_SESSION['user_id'];
+$full_name = $_SESSION['full_name'] ?? 'Administrator';
+
+// Fetch admin profile picture
+$stmt = $conn->prepare("SELECT profile_pic FROM users WHERE user_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($profile_pic);
+$stmt->fetch();
+$stmt->close();
+
+// Avatar logic
+$avatar = (!empty($profile_pic))
+    ? "../uploads/" . htmlspecialchars($profile_pic)
+    : "images/ProfileImg.png";
+
+// =======================
+// HELPERS
+// =======================
 function build_query(array $overrides = []): string {
     $params = $_GET;
     foreach ($overrides as $k => $v) {
@@ -12,7 +33,9 @@ function build_query(array $overrides = []): string {
     return '?' . http_build_query($params);
 }
 
-// ---------- HANDLE POST (ADD / EDIT / DELETE) ----------
+// =======================
+// HANDLE POST ACTIONS
+// =======================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
@@ -22,13 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $dept_name = trim($_POST['department_name'] ?? '');
 
         if ($dept_name !== "") {
-
             if ($dept_id > 0) {
-                // UPDATE
                 $stmt = $conn->prepare("UPDATE departments SET department_name = ? WHERE department_id = ?");
                 $stmt->bind_param("si", $dept_name, $dept_id);
             } else {
-                // INSERT
                 $stmt = $conn->prepare("INSERT INTO departments (department_name) VALUES (?)");
                 $stmt->bind_param("s", $dept_name);
             }
@@ -57,14 +77,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// ---------- SEARCH ----------
-$search = trim($_GET['search'] ?? '');
-
+// =======================
+// SEARCH / PAGINATION
+// =======================
+$search  = trim($_GET['search'] ?? '');
 $perPage = 10;
 $page    = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset  = ($page - 1) * $perPage;
 
-$where = "1";
+$where  = "1";
 $params = [];
 $types  = '';
 
@@ -77,9 +98,7 @@ if ($search !== '') {
 // COUNT
 $countSql = "SELECT COUNT(*) AS total FROM departments WHERE $where";
 $stmt = $conn->prepare($countSql);
-
 if ($types !== '') $stmt->bind_param($types, ...$params);
-
 $stmt->execute();
 $total = $stmt->get_result()->fetch_assoc()['total'] ?? 0;
 $stmt->close();
@@ -107,7 +126,6 @@ $stmt->execute();
 $result = $stmt->get_result();
 $departments = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -118,7 +136,6 @@ $stmt->close();
 <link rel="stylesheet" href="CSS/format.css">
 <link rel="stylesheet" href="CSS/admin.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
 
 </head>
 
@@ -131,45 +148,44 @@ $stmt->close();
 
 <!-- TOPBAR -->
 <header class="topbar">
-    <form class="search-container" method="get">
-        <input type="text" name="search" class="search-bar"
-               placeholder="Search departments..."
-               value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>">
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-    </form>
 
+    <!-- Removed search bar entirely -->
+    <div class="topbar-left"></div>
+
+    <!-- Real synced profile info -->
     <div class="profile-section">
-        <img src="images/ProfileImg.png" class="avatar">
-        <span class="profile-name">System Administrator</span>
-        <i class="fa-solid fa-chevron-down dropdown-icon"></i>
+        <img src="<?php echo $avatar; ?>" class="avatar">
+        <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
     </div>
+
 </header>
 
 <section class="dashboard-body">
+
     <h1>Department Management</h1>
     <p class="semester-text">Manage academic departments used for faculty assignment.</p>
 
+    <!-- Internal search bar (keep this one) -->
     <div class="department-toolbar">
-    <form method="get">
-        <input type="text" name="search"
-               placeholder="Search department name..."
-               value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>">
+        <form method="get">
+            <input type="text" name="search" 
+                   placeholder="Search department name..."
+                   value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>">
 
-        <button type="submit">
-            <i class="fa-solid fa-magnifying-glass"></i>
+            <button type="submit">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+
+            <?php if ($search !== ''): ?>
+                <a href="departments_admin.php"
+                   style="color:#b21e8f;text-decoration:none;font-size:13px;">Clear</a>
+            <?php endif; ?>
+        </form>
+
+        <button id="addDepartmentBtn">
+            <i class="fa-solid fa-building"></i> Add Department
         </button>
-
-        <?php if ($search !== ''): ?>
-            <a href="departments_admin.php"
-               style="color:#b21e8f;text-decoration:none;font-size:13px;">Clear</a>
-        <?php endif; ?>
-    </form>
-
-    <button id="addDepartmentBtn">
-        <i class="fa-solid fa-building"></i> Add Department
-    </button>
-</div>
-
+    </div>
 
     <!-- TABLE -->
     <div class="table-wrapper">
@@ -184,7 +200,9 @@ $stmt->close();
 
             <tbody>
             <?php if (empty($departments)): ?>
-                <tr><td colspan="3" style="text-align:center;padding:18px;">No departments found.</td></tr>
+                <tr><td colspan="3" style="text-align:center;padding:18px;">
+                    No departments found.
+                </td></tr>
             <?php else: ?>
                 <?php foreach ($departments as $d): ?>
                 <tr>
@@ -263,14 +281,17 @@ $stmt->close();
 <!-- PAGINATION -->
 <div class="pagination-bar">
   <div class="pagination-inner">
+
     <?php $prev = $page - 1; $next = $page + 1; ?>
 
+    <!-- Previous -->
     <span class="<?php echo ($page <= 1) ? 'disabled' : ''; ?>">
       <?php if ($page > 1): ?>
         <a href="<?php echo build_query(['page'=>$prev]); ?>">&laquo;</a>
       <?php else: ?>&laquo;<?php endif; ?>
     </span>
 
+    <!-- Page numbers -->
     <?php for ($i=1; $i <= $totalPages; $i++): ?>
       <?php if ($i == $page): ?>
         <span class="current-page"><?php echo $i; ?></span>
@@ -279,11 +300,13 @@ $stmt->close();
       <?php endif; ?>
     <?php endfor; ?>
 
+    <!-- Next -->
     <span class="<?php echo ($page >= $totalPages) ? 'disabled' : ''; ?>">
       <?php if ($page < $totalPages): ?>
         <a href="<?php echo build_query(['page'=>$next]); ?>">&raquo;</a>
       <?php else: ?>&raquo;<?php endif; ?>
     </span>
+
   </div>
 </div>
 
