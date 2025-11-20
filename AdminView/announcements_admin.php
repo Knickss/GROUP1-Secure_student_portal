@@ -3,7 +3,7 @@ include("../includes/auth_session.php");
 include("../config/db_connect.php");
 
 $user_id   = $_SESSION['user_id'];
-$full_name = $_SESSION['full_name'] ?? 'System Administrator';
+$full_name = $_SESSION['full_name'];
 
 /* ---------------- Create (ADMIN) ---------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create') {
@@ -111,22 +111,19 @@ function format_audience(string $aud): string {
     <main class="main-content">
       <!-- Topbar -->
       <header class="topbar">
-        <div class="search-container">
-          <input
-            type="text"
-            id="searchInput"
-            placeholder="Search announcements..."
-            class="search-bar"
-          >
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        </div>
 
-        <div class="profile-section">
-          <img src="images/ProfileImg.png" alt="User Avatar" class="avatar">
-          <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
-          <i class="fa-solid fa-chevron-down dropdown-icon"></i>
-        </div>
-      </header>
+  <!-- Removed Search Bar – leave empty space or adjust layout -->
+  <div class="topbar-left"></div>
+
+  <div class="profile-section">
+      <img src="<?php echo $avatar; ?>" alt="User Avatar" class="avatar">
+
+      <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
+      <!-- Removed dropdown arrow -->
+  </div>
+
+</header>
+
 
       <!-- Body -->
       <section class="dashboard-body">
