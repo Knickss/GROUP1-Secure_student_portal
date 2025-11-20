@@ -12,13 +12,9 @@ $stmt = $conn->prepare("
     u.full_name,
     u.email,
     u.role,
-    u.department_id,
-    u.teacher_id,
     u.profile_pic,
-    u.password,
-    d.department_name
+    u.password
   FROM users u
-  LEFT JOIN departments d ON u.department_id = d.department_id
   WHERE u.user_id = ?
 ");
 $stmt->bind_param("i", $user_id);
@@ -34,8 +30,8 @@ if (!$user) {
 $username    = $user['username']       ?? '';
 $full_name   = $user['full_name']      ?? '';
 $email       = $user['email']          ?? '';
-$department  = $user['department_name'] ?? 'Administration';
 $profile_pic = $user['profile_pic']    ?? '';
+$department  = "Administration"; // Admins do not have department assignments
 
 $error   = '';
 $success = '';
@@ -119,6 +115,7 @@ $avatar = (!empty($profile_pic))
   ? '../uploads/' . htmlspecialchars($profile_pic)
   : 'images/ProfileImg.png';
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
