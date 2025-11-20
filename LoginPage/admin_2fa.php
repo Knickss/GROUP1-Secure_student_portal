@@ -43,23 +43,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     // RESEND OTP
-    if (isset($_POST['resend_otp'])) {
+if (isset($_POST['resend_otp'])) {
 
-        $otp = (string)rand(100000, 999999);
-        $_SESSION['otp_code']    = $otp;
-        $_SESSION['otp_expires'] = time() + 300;
+    $otp = (string)rand(100000, 999999);
+    $_SESSION['otp_code']    = $otp;
+    $_SESSION['otp_expires'] = time() + 300;
 
-        // Fetch admin email (always safe)
-        $stmt = $conn->prepare("SELECT email, full_name FROM users WHERE user_id = ?");
-        $stmt->bind_param("i", $_SESSION['user_id']);
-        $stmt->execute();
-        $stmt->bind_result($email, $full_name);
-        $stmt->fetch();
-        $stmt->close();
+    // Fetch admin email
+    $stmt = $conn->prepare("SELECT email, full_name FROM users WHERE user_id = ?");
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    $stmt->bind_result($email, $full_name);
+    $stmt->fetch();
+    $stmt->close();
 
-        send_otp_email($email, $full_name, $otp);
-        $info = "A new code has been sent.";
-    }
+    // Fix for Intelephense warning (ensure strings)
+    $safeEmail = $email ?: "";
+    $safeName  = $full_name ?: "Administrator";
+
+    send_otp_email($safeEmail, $safeName, $otp);
+    $info = "A new code has been sent.";
+}
+
 }
 ?>
 <!DOCTYPE html>
