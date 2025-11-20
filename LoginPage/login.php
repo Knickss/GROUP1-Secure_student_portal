@@ -1,25 +1,47 @@
 <?php
 session_start();
-include("../config/db_connect.php");
-require_once("../includes/mail_otp.php"); // for admin OTP emails
+require_once("../config/db_connect.php");
+require_once("../includes/security.php");     // NEW: sanitization
+require_once("../includes/mail_otp.php");     // existing 2FA email
 
 $error = "";
 
-// Prevent autofill on reload
-$username_input = "";
-$password_input = "";
+// LIGHT BRUTE-FORCE PROTECTION (optional but recommended)
+if (!isset($_SESSION['login_attempts'])) {
+    $_SESSION['login_attempts'] = 0;
+}
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $username = trim($_POST["username"]);
-    $password = trim($_POST["password"]);
+if ($_SESSION['login_attempts'] >= 8) {
+    $error = "Too many failed attempts. Please wait 1 minute.";
+    if (!isset($_SESSION['lockout_time'])) {
+        $_SESSION['lockout_time'] = time();
+    }
 
-    // Keep blank values so browser doesn't autofill
-    $username_input = "";
-    $password_input = "";
+    // Lockout for 1 minute
+    if (time() - $_SESSION['lockout_time'] < 60) {
+        // Skip the rest of the login code
+    } else {
+        // Reset counter after cooldown
+        $_SESSION['login_attempts'] = 0;
+        unset($_SESSION['lockout_time']);
+    }
+}
+
+
+// ===========================================
+// PROCESS LOGIN
+// ===========================================
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && empty($error)) {
+
+    // Clean user input
+    $username = clean($_POST["username"] ?? "");
+    $password = clean($_POST["password"] ?? "");
 
     if (empty($username) || empty($password)) {
         $error = "Please enter both username and password.";
     } else {
+
         $stmt = $conn->prepare("
             SELECT user_id, username, password, role, full_name, email
             FROM users
@@ -34,31 +56,42 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             if (password_verify($password, $row['password'])) {
 
-                // Save base session
+                // SESSION FIXATION PROTECTION
+                session_regenerate_id(true);
+
+                // Store base session data
                 $_SESSION['user_id']   = $row['user_id'];
                 $_SESSION['username']  = $row['username'];
                 $_SESSION['role']      = $row['role'];
                 $_SESSION['full_name'] = $row['full_name'];
 
-                // Reset 2FA for every login
+                // Reset attempts on success
+                $_SESSION['login_attempts'] = 0;
+
+                // Reset 2FA status for admin
                 unset($_SESSION['otp_code'], $_SESSION['otp_expires'], $_SESSION['2fa_passed']);
 
+                // -----------------------------------
+                // ADMIN → 2FA WORKFLOW
+                // -----------------------------------
                 if ($row['role'] === 'admin') {
-                    // ========== ADMIN 2FA WORKFLOW ==========
+
                     $otp = (string)rand(100000, 999999);
 
                     $_SESSION['otp_code']    = $otp;
                     $_SESSION['otp_expires'] = time() + 300; // 5 minutes
                     $_SESSION['2fa_passed']  = false;
 
-                    // Send OTP email
+                    // Send OTP
                     send_otp_email($row['email'], $row['full_name'], $otp);
 
                     header("Location: admin_2fa.php");
                     exit;
                 }
 
-                // ========== Normal Roles ==========
+                // -----------------------------------
+                // NORMAL ROLES
+                // -----------------------------------
                 switch ($row['role']) {
                     case 'student':
                         header("Location: ../StudentView/dashboard_st.php");
@@ -68,18 +101,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         header("Location: ../ProfView/dashboard_prof.php");
                         exit;
 
-                    case 'admin':
-                        // admin 2FA handled above
-                        break;
-
                     default:
                         $error = "Invalid user role.";
                 }
 
             } else {
-                $error = "Invalid password.";
+                // WRONG PASSWORD
+                $_SESSION['login_attempts']++;
+                $error = "Incorrect password.";
             }
+
         } else {
+            // USER NOT FOUND
+            $_SESSION['login_attempts']++;
             $error = "User not found.";
         }
 
@@ -101,14 +135,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <img src="LoginLogo.png" alt="CEU Logo" class="logo">
 
       <div class="login-box">
-        <form method="POST" action="" autocomplete="off">
-          
+        <form method="POST" autocomplete="off">
+
           <input 
             type="text" 
             name="username" 
-            placeholder="Username" 
-            value="" 
-            autocomplete="off"
+            placeholder="Username"
+            autocomplete="off" 
             required
           >
 
@@ -116,17 +149,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             type="password" 
             name="password" 
             placeholder="Password"
-            value=""
-            autocomplete="new-password"
+            autocomplete="new-password" 
             required
           >
 
           <button type="submit" class="login-btn">Login</button>
 
           <?php if (!empty($error)): ?>
-            <div class="error"><?= htmlspecialchars($error) ?></div>
+            <div class="error"><?= e($error) ?></div>
           <?php endif; ?>
-          
+
         </form>
       </div>
     </div>
