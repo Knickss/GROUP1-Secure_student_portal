@@ -1,5 +1,18 @@
 <?php
+// -------------------------------------------
+// SECURE COOKIE SETTINGS — MUST COME FIRST
+// -------------------------------------------
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'domain' => '',
+    'secure' => false,   // set true on HTTPS deployment
+    'httponly' => true,
+    'samesite' => 'Strict'
+]);
+
 session_start();
+
 require_once __DIR__ . "/../config/db_connect.php";
 require_once __DIR__ . "/../includes/security.php";
 require_once __DIR__ . "/../includes/mail_otp.php";
@@ -38,8 +51,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } elseif ($entered !== $_SESSION['otp_code']) {
             $error = "Invalid code. Please try again.";
         } else {
-
-            // SUCCESS → Mark 2FA as passed
             $_SESSION['2fa_passed'] = true;
             unset($_SESSION['otp_code'], $_SESSION['otp_expires']);
 
@@ -50,13 +61,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     // ---------- RESEND OTP ----------
     if (isset($_POST["resend_otp"])) {
-
-        // Generate new OTP
         $otp = (string)rand(100000, 999999);
         $_SESSION['otp_code']    = $otp;
-        $_SESSION['otp_expires'] = time() + 300; // valid for 5 minutes
+        $_SESSION['otp_expires'] = time() + 300;
 
-        // Fetch admin email + name
         $stmt = $conn->prepare("SELECT email, full_name FROM users WHERE user_id = ?");
         $stmt->bind_param("i", $_SESSION['user_id']);
         $stmt->execute();
@@ -68,8 +76,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $safeName  = $full_name ?: "Administrator";
 
         send_otp_email($safeEmail, $safeName, $otp);
-
-        $info = "A new verification code has been sent to your email.";
+        $info = "A new verification code has been sent.";
     }
 
     // ---------- CANCEL LOGIN ----------
@@ -80,7 +87,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         exit;
     }
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -104,7 +110,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
           <div class="info" style="margin-bottom:10px;color:green;"><?= e($info) ?></div>
         <?php endif; ?>
 
-        <!-- VERIFY FORM -->
         <form method="POST" autocomplete="off">
           <input 
             type="text" 
@@ -119,14 +124,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
           </button>
         </form>
 
-        <!-- RESEND FORM -->
         <form method="POST" style="margin-top:10px;">
           <button type="submit" name="resend_otp" class="login-btn" style="background-color:#777;">
             Resend Code
           </button>
         </form>
 
-        <!-- CANCEL LOGIN -->
         <form method="POST" style="margin-top:10px;">
           <button type="submit" name="cancel_login" class="login-btn" style="background-color:#444;">
             Cancel Login
