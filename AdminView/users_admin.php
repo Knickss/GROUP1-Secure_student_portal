@@ -2,26 +2,6 @@
 include("../includes/auth_session.php");
 include("../config/db_connect.php");
 
-// ================== HEADER USER INFO (name + profile pic) ==================
-$user_id   = $_SESSION['user_id'];
-$full_name = $_SESSION['full_name'] ?? 'System Administrator';
-
-// default avatar
-$avatar = "images/ProfileImg.png";
-
-// try to load profile_pic from DB
-$stmt = $conn->prepare("SELECT profile_pic FROM users WHERE user_id = ?");
-if ($stmt) {
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $stmt->bind_result($profile_pic);
-    if ($stmt->fetch() && !empty($profile_pic)) {
-        // stored filename in DB, actual file is in ../uploads/
-        $avatar = "../uploads/" . $profile_pic;
-    }
-    $stmt->close();
-}
-
 // ================== HELPER: BUILD QUERY STRING ==================
 function build_query(array $overrides = []): string {
     $params = $_GET;
@@ -129,16 +109,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ================== SEARCH / FILTER / PAGINATION ==================
-$search     = trim($_GET['search'] ?? '');
+$search = trim($_GET['search'] ?? '');
 $roleFilter = $_GET['role'] ?? 'all';
 
 // Pagination
 $perPage = 10;
-$page    = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$offset  = ($page - 1) * $perPage;
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($page - 1) * $perPage;
 
 // Build WHERE
-$where  = "1=1";
+$where = "1=1";
 $params = [];
 $types  = "";
 
@@ -224,7 +204,105 @@ function display_role($role) {
   <link rel="stylesheet" href="CSS/admin.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-  
+  <style>
+    /* Pagination bar (same behavior as Students / Faculty) */
+    .pagination-bar {
+      position: fixed;
+      left: 190px;          /* align with sidebar width */
+      right: 0;
+      bottom: 15px;
+      display: flex;
+      justify-content: center;
+      z-index: 50;
+      pointer-events: none;
+    }
+    .pagination-inner {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 6px 14px;
+      border-radius: 999px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      display: flex;
+      gap: 6px;
+      pointer-events: auto;
+    }
+    .pagination-inner a,
+    .pagination-inner span {
+      min-width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .pagination-inner a {
+      background: #f8c9df;
+      color: #b21e8f;
+    }
+    .pagination-inner a:hover {
+      background: #f3bcd6;
+    }
+    .pagination-inner .current-page {
+      background: #b21e8f;
+      color: white;
+      font-weight: bold;
+    }
+    .pagination-inner .disabled {
+      background: #eee;
+      color: #aaa;
+      cursor: default;
+    }
+
+    .user-controls-form {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .user-controls-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .user-controls-left select,
+    .user-controls-left input[type="text"] {
+      padding: 8px 12px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    .user-controls-left button {
+      background: #b21e8f;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 7px 12px;
+      cursor: pointer;
+    }
+    .user-controls-left button:hover {
+      background: #d22aa6;
+    }
+    .add-btn {
+      background: #b21e8f;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 11px 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .add-btn:hover {
+      background: #d22aa6;
+    }
+  </style>
 </head>
 
 <body>
@@ -234,19 +312,15 @@ function display_role($role) {
     <main class="main-content">
       <!-- Topbar -->
       <header class="topbar">
-        <!-- removed search bar on the left -->
-        <div class="topbar-left"></div>
+        <div class="search-container">
+          <input type="text" placeholder="Search user..." class="search-bar">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        </div>
 
         <div class="profile-section">
-          <img
-            src="<?php echo htmlspecialchars($avatar, ENT_QUOTES); ?>"
-            alt="User Avatar"
-            class="avatar"
-          >
-          <span class="profile-name">
-            <?php echo htmlspecialchars($full_name); ?>
-          </span>
-          <!-- dropdown icon removed -->
+          <img src="images/ProfileImg.png" alt="User Avatar" class="avatar">
+          <span class="profile-name">System Administrator</span>
+          <i class="fa-solid fa-chevron-down dropdown-icon"></i>
         </div>
       </header>
 
@@ -259,7 +333,7 @@ function display_role($role) {
         <form method="get" class="user-controls-form">
           <div class="user-controls-left">
             <select name="role" onchange="this.form.submit()">
-              <option value="all"     <?php echo ($roleFilter === 'all')     ? 'selected' : ''; ?>>All Roles</option>
+              <option value="all" <?php echo ($roleFilter === 'all') ? 'selected' : ''; ?>>All Roles</option>
               <option value="student" <?php echo ($roleFilter === 'student') ? 'selected' : ''; ?>>Student</option>
               <option value="teacher" <?php echo ($roleFilter === 'teacher') ? 'selected' : ''; ?>>Professor</option>
               <option value="admin"   <?php echo ($roleFilter === 'admin')   ? 'selected' : ''; ?>>Admin</option>
@@ -520,16 +594,16 @@ function display_role($role) {
     }
 
     // ---------- ADD USER ----------
-    const addBtn    = document.getElementById("openAddUserModal");
-    const addClose  = document.getElementById("addUserClose");
+    const addBtn = document.getElementById("openAddUserModal");
+    const addClose = document.getElementById("addUserClose");
     const addCancel = document.getElementById("addUserCancel");
 
-    if (addBtn)    addBtn.onclick    = () => openModal("addUserModal");
-    if (addClose)  addClose.onclick  = () => closeModal("addUserModal");
+    if (addBtn) addBtn.onclick = () => openModal("addUserModal");
+    if (addClose) addClose.onclick = () => closeModal("addUserModal");
     if (addCancel) addCancel.onclick = () => closeModal("addUserModal");
 
     // ---------- EDIT USER ----------
-    const editClose  = document.getElementById("editUserClose");
+    const editClose = document.getElementById("editUserClose");
     const editCancel = document.getElementById("editUserCancel");
 
     document.querySelectorAll(".user-edit-btn").forEach(btn => {
@@ -575,9 +649,9 @@ function display_role($role) {
 
     // ---------- CLOSE MODALS ON BACKDROP CLICK ----------
     window.onclick = function (event) {
-      const addM  = document.getElementById("addUserModal");
-      const editM = document.getElementById("editUserModal");
-      const delM  = document.getElementById("deleteUserModal");
+      const addM    = document.getElementById("addUserModal");
+      const editM   = document.getElementById("editUserModal");
+      const delM    = document.getElementById("deleteUserModal");
 
       [addM, editM, delM].forEach(m => {
         if (event.target === m) {
