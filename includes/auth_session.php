@@ -1,4 +1,16 @@
 <?php
+// -------------------------------------------
+// SECURE COOKIE SETTINGS — MUST COME FIRST
+// -------------------------------------------
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'domain' => '',
+    'secure' => false,   // true when deployed on HTTPS
+    'httponly' => true,
+    'samesite' => 'Strict'
+]);
+
 session_start();
 
 // ---------------------------------------------------------
@@ -12,7 +24,7 @@ if (!isset($_SESSION['session_regenerated'])) {
 }
 
 // 2. SESSION TIMEOUT (30 minutes)
-$timeout_duration = 1800; // 1800 seconds = 30 minutes
+$timeout_duration = 1800;
 
 if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout_duration) {
     session_unset();
@@ -42,7 +54,6 @@ $currentPath = $_SERVER['PHP_SELF'];
 if ($role === 'admin') {
     $currentFile = basename($currentPath);
 
-    // Allow admin_2fa.php access WITHOUT 2FA being passed
     if ($currentFile !== "admin_2fa.php") {
         if (!isset($_SESSION['2fa_passed']) || $_SESSION['2fa_passed'] !== true) {
             header("Location: ../LoginPage/admin_2fa.php");
@@ -56,19 +67,16 @@ if ($role === 'admin') {
 // ROLE-BASED ACCESS CONTROL
 // ---------------------------------------------------------
 
-// Student trying to access something outside StudentView
 if (strpos($currentPath, 'StudentView') !== false && $role !== 'student') {
     header("Location: ../LoginPage/login.php");
     exit;
 }
 
-// Teacher trying to access outside ProfView
 if (strpos($currentPath, 'ProfView') !== false && $role !== 'teacher') {
     header("Location: ../LoginPage/login.php");
     exit;
 }
 
-// Admin trying to access outside AdminView
 if (strpos($currentPath, 'AdminView') !== false && $role !== 'admin') {
     header("Location: ../LoginPage/login.php");
     exit;
