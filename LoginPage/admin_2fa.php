@@ -3,131 +3,123 @@ session_start();
 require_once __DIR__ . "/../config/db_connect.php";
 require_once __DIR__ . "/../includes/mail_otp.php";
 
-// Redirect if no OTP session exists
-if (!isset($_SESSION['pending_2fa']) || !isset($_SESSION['user_id'])) {
+// Must be logged in as admin to use this page
+if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
     header("Location: login.php");
     exit;
 }
 
-// --- Handle OTP Submission ---
-$info = "";
 $error = "";
+$info  = "";
 
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["verify_otp"])) {
-    $entered = trim($_POST["otp_code"] ?? "");
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    if (empty($entered)) {
-        $error = "Please enter the code.";
-    } elseif (!isset($_SESSION['otp_code']) || !isset($_SESSION['otp_expires'])) {
-        $error = "No verification code found.";
-    } elseif (time() > $_SESSION['otp_expires']) {
-        $error = "The code has expired. Please resend a new one.";
-    } elseif ($entered !== $_SESSION['otp_code']) {
-        $error = "Incorrect code. Try again.";
-    } else {
-        // OTP success → complete login
-        unset($_SESSION['pending_2fa']);
-        unset($_SESSION['otp_code']);
-        unset($_SESSION['otp_expires']);
+    // ---------- VERIFY OTP ----------
+    if (isset($_POST["verify_otp"])) {
+        $entered = trim($_POST["otp"] ?? "");
 
-        header("Location: ../AdminView/dashboard_admin.php");
+        if ($entered === "") {
+            $error = "Please enter the code.";
+        } elseif (!isset($_SESSION['otp_code'], $_SESSION['otp_expires'])) {
+            $error = "No active code. Please request a new one.";
+        } elseif (time() > (int)$_SESSION['otp_expires']) {
+            $error = "Code has expired. Please request a new one.";
+        } elseif ($entered !== $_SESSION['otp_code']) {
+            $error = "Invalid code. Please try again.";
+        } else {
+            // Success: mark 2FA as passed and go to dashboard
+            $_SESSION['2fa_passed'] = true;
+            unset($_SESSION['otp_code'], $_SESSION['otp_expires']);
+
+            header("Location: ../AdminView/dashboard_admin.php");
+            exit;
+        }
+    }
+
+    // ---------- RESEND OTP ----------
+    if (isset($_POST["resend_otp"])) {
+        $otp = (string)rand(100000, 999999);
+        $_SESSION['otp_code']    = $otp;
+        $_SESSION['otp_expires'] = time() + 300;
+
+        // Fetch admin email + name from DB
+        $stmt = $conn->prepare("SELECT email, full_name FROM users WHERE user_id = ?");
+        $stmt->bind_param("i", $_SESSION['user_id']);
+        $stmt->execute();
+        $stmt->bind_result($email, $full_name);
+        $stmt->fetch();
+        $stmt->close();
+
+        $safeEmail = $email ?: "";
+        $safeName  = $full_name ?: "Administrator";
+
+        send_otp_email($safeEmail, $safeName, $otp);
+        $info = "A new code has been sent.";
+    }
+
+    // ---------- CANCEL LOGIN ----------
+    if (isset($_POST["cancel_login"])) {
+        session_unset();
+        session_destroy();
+        header("Location: login.php");
         exit;
     }
-}
-
-// --- Handle Resend ---
-if (isset($_POST['resend_otp'])) {
-
-    $otp = (string)rand(100000, 999999);
-    $_SESSION['otp_code']    = $otp;
-    $_SESSION['otp_expires'] = time() + 300;
-
-    // Fetch admin email
-    $stmt = $conn->prepare("SELECT email, full_name FROM users WHERE user_id = ?");
-    $stmt->bind_param("i", $_SESSION['user_id']);
-    $stmt->execute();
-    $stmt->bind_result($email, $full_name);
-    $stmt->fetch();
-    $stmt->close();
-
-    // Safe fallbacks
-    $safeEmail = $email ?: "";
-    $safeName  = $full_name ?: "Administrator";
-
-    send_otp_email($safeEmail, $safeName, $otp);
-    $info = "A new verification code has been sent.";
-}
-
-// --- Cancel Login ---
-if (isset($_POST["cancel_login"])) {
-    session_unset();
-    session_destroy();
-    header("Location: login.php");
-    exit;
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Verification</title>
+    <title>Escolink Centra | Admin Verification</title>
     <link rel="stylesheet" href="format/css.css">
 </head>
-
 <body class="login-body">
 
-<div class="center-wrapper">
+  <div class="center-wrapper">
     <div class="content">
 
-        <h1 class="title">Admin Verification</h1>
+      <h1 class="title">Admin Verification</h1>
 
-        <div class="login-box" style="margin-top:20px;">
+      <div class="login-box" style="margin-top: 20px;">
 
-            <!-- OTP FORM -->
-            <form method="POST">
-                <input type="hidden" name="verify_otp" value="1">
+        <?php if (!empty($error)): ?>
+          <div class="error" style="margin-bottom:10px;"><?= htmlspecialchars($error) ?></div>
+        <?php elseif (!empty($info)): ?>
+          <div class="info" style="margin-bottom:10px;color:green;"><?= htmlspecialchars($info) ?></div>
+        <?php endif; ?>
 
-                <input 
-                    type="text" 
-                    name="otp_code" 
-                    placeholder="Enter 6-digit code"
-                    maxlength="6"
-                    required
-                >
+        <!-- VERIFY FORM -->
+        <form method="POST" autocomplete="off">
+          <input 
+            type="text" 
+            name="otp" 
+            placeholder="Enter 6-digit code" 
+            maxlength="6" 
+            autocomplete="off"
+            required
+          >
+          <button type="submit" name="verify_otp" class="login-btn" style="margin-top:10px;">
+            Verify Code
+          </button>
+        </form>
 
-                <button type="submit" class="login-btn" style="margin-top:10px;">
-                    Verify Code
-                </button>
-            </form>
+        <!-- RESEND FORM (separate so it doesn't require OTP field) -->
+        <form method="POST" style="margin-top:10px;">
+          <button type="submit" name="resend_otp" class="login-btn" style="background-color:#777;">
+            Resend Code
+          </button>
+        </form>
 
-            <!-- RESEND BUTTON (separate form!) -->
-            <form method="POST" style="margin-top:10px;">
-                <input type="hidden" name="resend_otp" value="1">
-                <button type="submit" class="login-btn" style="background:#777;">
-                    Resend Code
-                </button>
-            </form>
+        <!-- CANCEL LOGIN -->
+        <form method="POST" style="margin-top:10px;">
+          <button type="submit" name="cancel_login" class="login-btn" style="background-color:#444;">
+            Cancel Login
+          </button>
+        </form>
 
-            <!-- CANCEL LOGIN -->
-            <form method="POST" style="margin-top:10px;">
-                <input type="hidden" name="cancel_login" value="1">
-                <button type="submit" class="login-btn" style="background:#444;">
-                    Cancel Login
-                </button>
-            </form>
-
-            <!-- Status messages -->
-            <?php if (!empty($error)): ?>
-                <div class="error" style="margin-top:10px;"><?= htmlspecialchars($error) ?></div>
-            <?php endif; ?>
-
-            <?php if (!empty($info)): ?>
-                <div class="info" style="margin-top:10px;color:green;"><?= htmlspecialchars($info) ?></div>
-            <?php endif; ?>
-
-        </div>
+      </div>
     </div>
-</div>
+  </div>
 
 </body>
 </html>
