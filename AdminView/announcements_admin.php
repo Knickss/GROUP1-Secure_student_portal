@@ -2,16 +2,30 @@
 include("../includes/auth_session.php");
 include("../config/db_connect.php");
 
+// Basic session values
 $user_id   = $_SESSION['user_id'];
-$full_name = $_SESSION['full_name'];
+$full_name = $_SESSION['full_name'] ?? 'Administrator';
 
-/* ---------------- Create (ADMIN) ---------------- */
+/* ---------------- FETCH ADMIN PROFILE PICTURE ---------------- */
+$stmt = $conn->prepare("SELECT profile_pic FROM users WHERE user_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($profile_pic);
+$stmt->fetch();
+$stmt->close();
+
+// Use uploaded image OR fallback
+$avatar = (!empty($profile_pic))
+    ? "../uploads/" . htmlspecialchars($profile_pic)
+    : "images/ProfileImg.png";
+
+/* ---------------- CREATE ANNOUNCEMENT ---------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create') {
+
   $title    = trim($_POST['title'] ?? '');
   $content  = trim($_POST['content'] ?? '');
   $audience = trim($_POST['audience'] ?? '');
 
-  // allow only known audiences
   $validAudiences = ['all', 'students', 'professors'];
 
   if ($title !== '' && $content !== '' && in_array($audience, $validAudiences, true)) {
@@ -28,8 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
   exit;
 }
 
-/* ---------------- Edit (ADMIN) ---------------- */
+/* ---------------- EDIT ANNOUNCEMENT ---------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit') {
+
   $id       = (int)($_POST['announcement_id'] ?? 0);
   $title    = trim($_POST['title'] ?? '');
   $content  = trim($_POST['content'] ?? '');
@@ -52,8 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit'
   exit;
 }
 
-/* ---------------- Delete (ADMIN) ---------------- */
+
+/* ---------------- DELETE ANNOUNCEMENT ---------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
+
   $id = (int)($_POST['announcement_id'] ?? 0);
 
   if ($id > 0) {
@@ -70,7 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
   exit;
 }
 
-/* ---------------- Fetch announcements authored by this admin ---------------- */
+
+/* ---------------- FETCH ANNOUNCEMENTS ---------------- */
 $stmt = $conn->prepare("
   SELECT announcement_id, title, content, audience, date_posted
   FROM announcements
@@ -82,7 +100,8 @@ $stmt->execute();
 $announcements = $stmt->get_result();
 $stmt->close();
 
-// small helper for audience label
+
+/* ---------------- AUDIENCE LABEL HELPER ---------------- */
 function format_audience(string $aud): string {
   switch ($aud) {
     case 'students':   return 'Students';
@@ -97,6 +116,7 @@ function format_audience(string $aud): string {
 <head>
   <meta charset="UTF-8">
   <title>Escolink Centra | Admin Announcements</title>
+
   <link rel="stylesheet" href="CSS/format.css">
   <link rel="stylesheet" href="CSS/admin.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -104,61 +124,48 @@ function format_audience(string $aud): string {
 
 <body>
   <div class="portal-layout">
+
     <!-- Sidebar -->
     <?php include('sidebar_admin.php'); ?>
 
     <!-- Main Content -->
     <main class="main-content">
+
       <!-- Topbar -->
       <header class="topbar">
 
-  <!-- Removed Search Bar – leave empty space or adjust layout -->
-  <div class="topbar-left"></div>
+        <!-- No Search Bar -->
+        <div class="topbar-left"></div>
 
-  <div class="profile-section">
-      <img src="<?php echo $avatar; ?>" alt="User Avatar" class="avatar">
+        <!-- Profile Section (Synced with DB) -->
+        <div class="profile-section">
+          <img src="<?php echo $avatar; ?>" alt="User Avatar" class="avatar">
+          <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
+        </div>
 
-      <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
-      <!-- Removed dropdown arrow -->
-  </div>
-
-</header>
-
+      </header>
 
       <!-- Body -->
       <section class="dashboard-body">
-        <h1>Announcements</h1>
-        <p class="semester-text">
-          Post, review, or manage announcements across the Escolink Centra platform.
-        </p>
 
-        <!-- Create Announcement (backend-enabled) -->
+        <h1>Announcements</h1>
+        <p class="semester-text">Post, review, or manage announcements across the Escolink Centra platform.</p>
+
+        <!-- CREATE ANNOUNCEMENT -->
         <div class="announcement-form">
           <h3><i class="fa-solid fa-bullhorn"></i> Create New Announcement</h3>
 
           <form method="POST" action="">
             <input type="hidden" name="action" value="create">
 
-            <label for="title">Title:</label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              placeholder="Enter announcement title..."
-              required
-            >
+            <label>Title:</label>
+            <input type="text" name="title" placeholder="Enter announcement title..." required>
 
-            <label for="message">Message:</label>
-            <textarea
-              id="message"
-              name="content"
-              placeholder="Write your announcement here..."
-              rows="5"
-              required
-            ></textarea>
+            <label>Message:</label>
+            <textarea name="content" placeholder="Write your announcement here..." rows="5" required></textarea>
 
-            <label for="audience">Target Audience:</label>
-            <select id="audience" name="audience" required>
+            <label>Target Audience:</label>
+            <select name="audience" required>
               <option value="">Select an audience</option>
               <option value="all">All Users</option>
               <option value="students">Students</option>
@@ -169,7 +176,7 @@ function format_audience(string $aud): string {
           </form>
         </div>
 
-        <!-- Recent Announcements -->
+        <!-- RECENT ANNOUNCEMENTS -->
         <section class="announcements-section" id="annList">
           <h2><i class="fa-solid fa-bullhorn"></i> Recent Announcements</h2>
 
@@ -177,13 +184,13 @@ function format_audience(string $aud): string {
             <?php while ($a = $announcements->fetch_assoc()): ?>
               <?php
                 $aid      = (int)$a['announcement_id'];
-                $title    = $a['title'] ?? '';
-                $body     = $a['content'] ?? '';
-                $aud      = $a['audience'] ?? 'all';
+                $title    = $a['title'];
+                $body     = $a['content'];
+                $aud      = $a['audience'];
                 $audLabel = format_audience($aud);
               ?>
-              <div
-                class="announcement-card"
+
+              <div class="announcement-card"
                 data-id="<?php echo $aid; ?>"
                 data-title="<?php echo htmlspecialchars($title, ENT_QUOTES); ?>"
                 data-content="<?php echo htmlspecialchars($body, ENT_QUOTES); ?>"
@@ -195,9 +202,7 @@ function format_audience(string $aud): string {
                   Posted: <?php echo date("F j, Y", strtotime($a['date_posted'])); ?>
                   | Target: <?php echo htmlspecialchars($audLabel); ?>
                 </p>
-                <p class="announce-preview">
-                  <?php echo nl2br(htmlspecialchars($body)); ?>
-                </p>
+                <p class="announce-preview"><?php echo nl2br(htmlspecialchars($body)); ?></p>
 
                 <div class="card-actions">
                   <button class="details-btn" onclick="openView(this)">
@@ -211,20 +216,20 @@ function format_audience(string $aud): string {
                   </button>
                 </div>
               </div>
+
             <?php endwhile; ?>
+
           <?php else: ?>
-            <p style="text-align:center; font-style:italic;">
-              No announcements posted yet.
-            </p>
+            <p style="text-align:center; font-style:italic;">No announcements posted yet.</p>
           <?php endif; ?>
         </section>
+
       </section>
     </main>
   </div>
 
-  <!-- ===================== MODALS ===================== -->
-
-  <!-- VIEW DETAILS -->
+  <!-- ============= MODALS (View/Edit/Delete) ============= -->
+  <!-- View -->
   <div id="viewModal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeView()">&times;</span>
@@ -234,11 +239,12 @@ function format_audience(string $aud): string {
     </div>
   </div>
 
-  <!-- EDIT ANNOUNCEMENT -->
+  <!-- Edit -->
   <div id="editModal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeEdit()">&times;</span>
       <h2>Edit Announcement</h2>
+
       <form method="POST" action="">
         <input type="hidden" name="action" value="edit">
         <input type="hidden" name="announcement_id" id="edit_id">
@@ -264,88 +270,62 @@ function format_audience(string $aud): string {
     </div>
   </div>
 
-  <!-- DELETE CONFIRM -->
+  <!-- Delete -->
   <div id="deleteModal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeDelete()">&times;</span>
       <h2>Delete Announcement</h2>
       <p>Are you sure you want to delete this announcement?</p>
-      <form method="POST" action="" style="margin-top:10px;">
+
+      <form method="POST" action="">
         <input type="hidden" name="action" value="delete">
         <input type="hidden" name="announcement_id" id="delete_id">
+
         <div class="modal-buttons">
           <button type="submit" class="delete-btn">Delete</button>
           <button type="button" class="cancel-btn" onclick="closeDelete()">Cancel</button>
         </div>
       </form>
+
     </div>
   </div>
 
-  <!-- ===================== JS ===================== -->
   <script>
-    // --- View ---
     function openView(btn) {
       const card = btn.closest('.announcement-card');
-      const title = card.dataset.title || '';
-      const body = card.dataset.content || '';
-      const audLabel = card.dataset.audiencelabel || '';
-
-      document.getElementById('viewTitle').textContent = title;
-      document.getElementById('viewMeta').textContent = 'Target Audience: ' + audLabel;
-      document.getElementById('viewBody').textContent = body;
-
-      document.getElementById('viewModal').style.display = 'flex';
+      document.getElementById('viewTitle').textContent = card.dataset.title;
+      document.getElementById('viewMeta').textContent = "Target Audience: " + card.dataset.audiencelabel;
+      document.getElementById('viewBody').textContent = card.dataset.content;
+      document.getElementById('viewModal').style.display = "flex";
     }
-    function closeView() {
-      document.getElementById('viewModal').style.display = 'none';
-    }
+    function closeView(){ document.getElementById('viewModal').style.display = "none"; }
 
-    // --- Edit ---
     function openEdit(btn) {
       const card = btn.closest('.announcement-card');
 
-      document.getElementById('edit_id').value      = card.dataset.id || '';
-      document.getElementById('edit_title').value   = card.dataset.title || '';
-      document.getElementById('edit_content').value = card.dataset.content || '';
-      document.getElementById('edit_audience').value = card.dataset.audience || 'all';
+      document.getElementById('edit_id').value      = card.dataset.id;
+      document.getElementById('edit_title').value   = card.dataset.title;
+      document.getElementById('edit_content').value = card.dataset.content;
+      document.getElementById('edit_audience').value = card.dataset.audience;
 
-      document.getElementById('editModal').style.display = 'flex';
+      document.getElementById('editModal').style.display = "flex";
     }
-    function closeEdit() {
-      document.getElementById('editModal').style.display = 'none';
-    }
+    function closeEdit(){ document.getElementById('editModal').style.display = "none"; }
 
-    // --- Delete ---
-    function openDelete(btn) {
+    function openDelete(btn){
       const card = btn.closest('.announcement-card');
-      const id = card.dataset.id || '';
-
-      document.getElementById('delete_id').value = id;
-      document.getElementById('deleteModal').style.display = 'flex';
+      document.getElementById('delete_id').value = card.dataset.id;
+      document.getElementById('deleteModal').style.display = "flex";
     }
-    function closeDelete() {
-      document.getElementById('deleteModal').style.display = 'none';
-    }
+    function closeDelete(){ document.getElementById('deleteModal').style.display = "none"; }
 
-    // Close any modal by clicking outside
     window.addEventListener('click', (e) => {
-      ['viewModal', 'editModal', 'deleteModal'].forEach(id => {
+      ['viewModal','editModal','deleteModal'].forEach(id => {
         const m = document.getElementById(id);
         if (e.target === m) m.style.display = 'none';
       });
     });
-
-    // Simple client-side filter (same style as prof view)
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-      searchInput.addEventListener('input', () => {
-        const q = searchInput.value.toLowerCase();
-        document.querySelectorAll('#annList .announcement-card').forEach(card => {
-          const text = card.textContent.toLowerCase();
-          card.style.display = text.includes(q) ? '' : 'none';
-        });
-      });
-    }
   </script>
+
 </body>
 </html>
