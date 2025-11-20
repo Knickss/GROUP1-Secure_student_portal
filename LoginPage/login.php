@@ -1,62 +1,92 @@
 <?php
 session_start();
 include("../config/db_connect.php");
+require_once("../includes/mail_otp.php"); // for admin OTP emails
 
 $error = "";
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  $username = trim($_POST["username"]);
-  $password = trim($_POST["password"]);
+// Prevent autofill on reload
+$username_input = "";
+$password_input = "";
 
-  if (empty($username) || empty($password)) {
-    $error = "Please enter both username and password.";
-  } else {
-    $stmt = $conn->prepare("SELECT user_id, username, password, role, full_name FROM users WHERE username = ?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $username = trim($_POST["username"]);
+    $password = trim($_POST["password"]);
 
-    if ($result->num_rows === 1) {
-      $row = $result->fetch_assoc();
+    // Keep blank values so browser doesn't autofill
+    $username_input = "";
+    $password_input = "";
 
-      if (password_verify($password, $row['password'])) {
-        // Save session variables
-        $_SESSION['user_id'] = $row['user_id'];
-        $_SESSION['username'] = $row['username'];
-        $_SESSION['role'] = $row['role'];
-        $_SESSION['full_name'] = $row['full_name'];
+    if (empty($username) || empty($password)) {
+        $error = "Please enter both username and password.";
+    } else {
+        $stmt = $conn->prepare("
+            SELECT user_id, username, password, role, full_name, email
+            FROM users
+            WHERE username = ?
+        ");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
-        // Redirect based on user role
-        switch ($row['role']) {
-          case 'student':
-            header("Location: ../StudentView/dashboard_st.php");
-            exit;
+        if ($result->num_rows === 1) {
+            $row = $result->fetch_assoc();
 
-          case 'teacher':
-            header("Location: ../ProfView/dashboard_prof.php");
-            exit;
+            if (password_verify($password, $row['password'])) {
 
-          case 'admin':
-            header("Location: ../AdminView/dashboard_admin.php");
-            exit;
+                // Save base session
+                $_SESSION['user_id']   = $row['user_id'];
+                $_SESSION['username']  = $row['username'];
+                $_SESSION['role']      = $row['role'];
+                $_SESSION['full_name'] = $row['full_name'];
 
-          default:
-            $error = "Invalid user role.";
-            break;
+                // Reset 2FA for every login
+                unset($_SESSION['otp_code'], $_SESSION['otp_expires'], $_SESSION['2fa_passed']);
+
+                if ($row['role'] === 'admin') {
+                    // ========== ADMIN 2FA WORKFLOW ==========
+                    $otp = (string)rand(100000, 999999);
+
+                    $_SESSION['otp_code']    = $otp;
+                    $_SESSION['otp_expires'] = time() + 300; // 5 minutes
+                    $_SESSION['2fa_passed']  = false;
+
+                    // Send OTP email
+                    send_otp_email($row['email'], $row['full_name'], $otp);
+
+                    header("Location: admin_2fa.php");
+                    exit;
+                }
+
+                // ========== Normal Roles ==========
+                switch ($row['role']) {
+                    case 'student':
+                        header("Location: ../StudentView/dashboard_st.php");
+                        exit;
+
+                    case 'teacher':
+                        header("Location: ../ProfView/dashboard_prof.php");
+                        exit;
+
+                    case 'admin':
+                        // admin 2FA handled above
+                        break;
+
+                    default:
+                        $error = "Invalid user role.";
+                }
+
+            } else {
+                $error = "Invalid password.";
+            }
+        } else {
+            $error = "User not found.";
         }
 
-      } else {
-        $error = "Invalid password.";
-      }
-    } else {
-      $error = "User not found.";
+        $stmt->close();
     }
-
-    $stmt->close();
-  }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -71,14 +101,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       <img src="LoginLogo.png" alt="CEU Logo" class="logo">
 
       <div class="login-box">
-        <form method="POST" action="">
-          <input type="text" name="username" placeholder="Username" required>
-          <input type="password" name="password" placeholder="Password" required>
+        <form method="POST" action="" autocomplete="off">
+          
+          <input 
+            type="text" 
+            name="username" 
+            placeholder="Username" 
+            value="" 
+            autocomplete="off"
+            required
+          >
+
+          <input 
+            type="password" 
+            name="password" 
+            placeholder="Password"
+            value=""
+            autocomplete="new-password"
+            required
+          >
+
           <button type="submit" class="login-btn">Login</button>
 
           <?php if (!empty($error)): ?>
             <div class="error"><?= htmlspecialchars($error) ?></div>
           <?php endif; ?>
+          
         </form>
       </div>
     </div>
