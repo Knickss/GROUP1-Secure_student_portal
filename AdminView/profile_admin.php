@@ -135,16 +135,14 @@ $avatar = (!empty($profile_pic))
 
       <!-- TOPBAR -->
       <header class="topbar">
-        <div class="search-container">
-          <input type="text" placeholder="Search..." class="search-bar">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        </div>
+  <div></div> <!-- empty spacer to keep layout balanced -->
 
-        <div class="profile-section">
-          <img src="<?php echo $avatar; ?>" class="avatar">
-          <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
-        </div>
-      </header>
+  <div class="profile-section">
+    <img src="<?php echo $avatar; ?>" class="avatar">
+    <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
+  </div>
+</header>
+
 
       <section class="dashboard-body">
         <section class="profile-wrapper">
