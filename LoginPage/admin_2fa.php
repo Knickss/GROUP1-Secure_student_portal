@@ -1,22 +1,33 @@
 <?php
 session_start();
 require_once __DIR__ . "/../config/db_connect.php";
+require_once __DIR__ . "/../includes/security.php";
 require_once __DIR__ . "/../includes/mail_otp.php";
 
-// Must be logged in as admin to use this page
+// User must be logged in AND role must be admin
 if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
     header("Location: login.php");
     exit;
 }
 
+// SESSION FIXATION PROTECTION
+if (!isset($_SESSION['session_regenerated_2fa'])) {
+    session_regenerate_id(true);
+    $_SESSION['session_regenerated_2fa'] = true;
+}
+
 $error = "";
 $info  = "";
+
+// ====================================================
+// PROCESS FORMS
+// ====================================================
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     // ---------- VERIFY OTP ----------
     if (isset($_POST["verify_otp"])) {
-        $entered = trim($_POST["otp"] ?? "");
+        $entered = clean($_POST["otp"] ?? "");
 
         if ($entered === "") {
             $error = "Please enter the code.";
@@ -27,7 +38,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } elseif ($entered !== $_SESSION['otp_code']) {
             $error = "Invalid code. Please try again.";
         } else {
-            // Success: mark 2FA as passed and go to dashboard
+
+            // SUCCESS → Mark 2FA as passed
             $_SESSION['2fa_passed'] = true;
             unset($_SESSION['otp_code'], $_SESSION['otp_expires']);
 
@@ -38,11 +50,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     // ---------- RESEND OTP ----------
     if (isset($_POST["resend_otp"])) {
+
+        // Generate new OTP
         $otp = (string)rand(100000, 999999);
         $_SESSION['otp_code']    = $otp;
-        $_SESSION['otp_expires'] = time() + 300;
+        $_SESSION['otp_expires'] = time() + 300; // valid for 5 minutes
 
-        // Fetch admin email + name from DB
+        // Fetch admin email + name
         $stmt = $conn->prepare("SELECT email, full_name FROM users WHERE user_id = ?");
         $stmt->bind_param("i", $_SESSION['user_id']);
         $stmt->execute();
@@ -54,7 +68,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $safeName  = $full_name ?: "Administrator";
 
         send_otp_email($safeEmail, $safeName, $otp);
-        $info = "A new code has been sent.";
+
+        $info = "A new verification code has been sent to your email.";
     }
 
     // ---------- CANCEL LOGIN ----------
@@ -65,6 +80,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         exit;
     }
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -83,9 +99,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <div class="login-box" style="margin-top: 20px;">
 
         <?php if (!empty($error)): ?>
-          <div class="error" style="margin-bottom:10px;"><?= htmlspecialchars($error) ?></div>
+          <div class="error" style="margin-bottom:10px;"><?= e($error) ?></div>
         <?php elseif (!empty($info)): ?>
-          <div class="info" style="margin-bottom:10px;color:green;"><?= htmlspecialchars($info) ?></div>
+          <div class="info" style="margin-bottom:10px;color:green;"><?= e($info) ?></div>
         <?php endif; ?>
 
         <!-- VERIFY FORM -->
@@ -103,7 +119,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
           </button>
         </form>
 
-        <!-- RESEND FORM (separate so it doesn't require OTP field) -->
+        <!-- RESEND FORM -->
         <form method="POST" style="margin-top:10px;">
           <button type="submit" name="resend_otp" class="login-btn" style="background-color:#777;">
             Resend Code
