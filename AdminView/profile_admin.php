@@ -171,7 +171,6 @@ $avatar = (!empty($profile_pic))
             <div class="profile-column">
               <h3><i class="fa-solid fa-gear"></i> System Role</h3>
               <p><strong>Role:</strong> Administrator</p>
-              <p><strong>Department:</strong> <?php echo htmlspecialchars($department); ?></p>
             </div>
 
           </div>
