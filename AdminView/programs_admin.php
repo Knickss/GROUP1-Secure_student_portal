@@ -2,6 +2,7 @@
 include("../includes/auth_session.php");
 include("../includes/auth_admin.php"); 
 include("../config/db_connect.php");
+include("../includes/logging.php"); // <-- ADDED
 
 // =======================
 // FETCH ADMIN INFO
@@ -33,7 +34,7 @@ function build_query(array $overrides = []): string {
 }
 
 // =======================
-// HANDLE POST
+// HANDLE POST (LOGGING ADDED)
 // =======================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -44,16 +45,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $program_name = trim($_POST['program_name'] ?? '');
 
         if ($program_name !== '') {
+
+            // EDIT
             if ($program_id > 0) {
                 $stmt = $conn->prepare("UPDATE programs SET program_name = ? WHERE program_id = ?");
                 $stmt->bind_param("si", $program_name, $program_id);
+                $stmt->execute();
+                $stmt->close();
+
+                // LOG UPDATE
+                log_activity(
+                    $conn,
+                    (int)$user_id,
+                    "Edited Program",
+                    "Updated program ID {$program_id} to '{$program_name}'.",
+                    "success"
+                );
+
             } else {
+                // ADD
                 $stmt = $conn->prepare("INSERT INTO programs (program_name) VALUES (?)");
                 $stmt->bind_param("s", $program_name);
-            }
+                $stmt->execute();
+                $stmt->close();
 
-            $stmt->execute();
-            $stmt->close();
+                // LOG INSERT
+                log_activity(
+                    $conn,
+                    (int)$user_id,
+                    "Added Program",
+                    "Created new program '{$program_name}'.",
+                    "success"
+                );
+            }
         }
 
         header("Location: programs_admin.php" . build_query(['page' => null]));
@@ -65,10 +89,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $program_id = (int)($_POST['program_id'] ?? 0);
 
         if ($program_id > 0) {
+
+            // fetch program name for log clarity
+            $stmt = $conn->prepare("SELECT program_name FROM programs WHERE program_id = ?");
+            $stmt->bind_param("i", $program_id);
+            $stmt->execute();
+            $stmt->bind_result($pname);
+            $stmt->fetch();
+            $stmt->close();
+
+            // delete
             $stmt = $conn->prepare("DELETE FROM programs WHERE program_id = ?");
             $stmt->bind_param("i", $program_id);
             $stmt->execute();
             $stmt->close();
+
+            // LOG DELETE
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Deleted Program",
+                "Deleted program ID {$program_id} ('{$pname}').",
+                "success"
+            );
         }
 
         header("Location: programs_admin.php" . build_query(['page' => null]));
@@ -77,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // =======================
-// SEARCH & PAGINATION
+// SEARCH & PAGINATION (UNCHANGED)
 // =======================
 $search  = trim($_GET['search'] ?? '');
 $perPage = 10;
