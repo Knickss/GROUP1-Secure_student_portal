@@ -129,10 +129,7 @@ $avatar = (!empty($profile_pic))
 <main class="main-content">
 
 <header class="topbar">
-  <div class="search-container">
-    <input type="text" placeholder="Search..." class="search-bar">
-    <i class="fa-solid fa-magnifying-glass search-icon"></i>
-  </div>
+  <div></div>
   <div class="profile-section">
     <img src="<?php echo $avatar; ?>" class="avatar">
     <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
