@@ -112,17 +112,17 @@ $search     = trim($_GET['search'] ?? "");
 $roleFilter = $_GET['role'] ?? "all";
 
 $perPage = 10;
-$page = max(1, (int)($_GET['page'] ?? 1));
-$offset = ($page - 1) * $perPage;
+$page    = max(1, (int)($_GET['page'] ?? 1));
+$offset  = ($page - 1) * $perPage;
 
-$where = "1=1";
+$where  = "1=1";
 $params = [];
 $types  = "";
 
 $validRoles = ["student", "teacher", "admin"];
 
 if ($roleFilter !== 'all' && in_array($roleFilter, $validRoles, true)) {
-    $where .= " AND u.role=?";
+    $where   .= " AND u.role=?";
     $params[] = $roleFilter;
     $types   .= "s";
 }
@@ -137,7 +137,8 @@ if ($search !== "") {
     }
 }
 
-$sql = "SELECT COUNT(*) AS total FROM users u WHERE $where";
+// Count total
+$sql  = "SELECT COUNT(*) AS total FROM users u WHERE $where";
 $stmt = $conn->prepare($sql);
 if ($types) $stmt->bind_param($types, ...$params);
 $stmt->execute();
@@ -146,6 +147,7 @@ $stmt->close();
 
 $totalPages = max(1, ceil($total / $perPage));
 
+// Fetch paginated rows
 $sql = "
     SELECT u.user_id, u.username, u.full_name, u.email, u.role, u.created_at
     FROM users u
@@ -167,7 +169,6 @@ $stmt->execute();
 $res   = $stmt->get_result();
 $users = $res->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
-
 
 function display_role($r) {
     return $r === "teacher" ? "Professor" : ucfirst($r);
@@ -215,11 +216,15 @@ function display_role($r) {
                         <option value="admin"   <?= $roleFilter==="admin" ? "selected" : "" ?>>Admin</option>
                     </select>
 
-                    <input type="text" name="search"
+                    <input
+                        type="text"
+                        name="search"
                         placeholder="Search by username, name or email..."
                         value="<?= htmlspecialchars($search) ?>">
 
-                    <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    <button type="submit">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
 
                     <?php if ($search !== "" || $roleFilter !== "all"): ?>
                         <a href="users_admin.php" class="clear-link">Clear</a>
@@ -247,16 +252,16 @@ function display_role($r) {
 
                     <tbody>
                     <?php if (!$users): ?>
-                        <tr><td colspan="6" style="text-align:center;">No users found.</td></tr>
+                        <tr>
+                            <td colspan="6" style="text-align:center;">No users found.</td>
+                        </tr>
                     <?php else: foreach ($users as $u): ?>
                         <tr>
-
                             <td><?= $u['user_id'] ?></td>
                             <td><?= htmlspecialchars($u['username']) ?></td>
                             <td><?= htmlspecialchars($u['full_name']) ?></td>
                             <td><?= display_role($u['role']) ?></td>
                             <td><?= htmlspecialchars($u['email']) ?></td>
-
                             <td>
                                 <button class="edit-btn user-edit-btn"
                                     data-user-id="<?= $u['user_id'] ?>"
@@ -273,7 +278,6 @@ function display_role($r) {
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             </td>
-
                         </tr>
                     <?php endforeach; endif; ?>
                     </tbody>
@@ -284,6 +288,43 @@ function display_role($r) {
         </section>
 
     </main>
+</div>
+
+<!-- ====================== PAGINATION (STICKY) ====================== -->
+<div class="pagination-bar">
+  <div class="pagination-inner">
+    <?php
+      $prev = $page - 1;
+      $next = $page + 1;
+    ?>
+
+    <!-- Previous -->
+    <span class="<?php echo ($page <= 1) ? 'disabled' : ''; ?>">
+      <?php if ($page > 1): ?>
+        <a href="<?php echo build_query(['page' => $prev]); ?>">&laquo;</a>
+      <?php else: ?>
+        &laquo;
+      <?php endif; ?>
+    </span>
+
+    <!-- Page numbers -->
+    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+      <?php if ($i == $page): ?>
+        <span class="current-page"><?php echo $i; ?></span>
+      <?php else: ?>
+        <a href="<?php echo build_query(['page' => $i]); ?>"><?php echo $i; ?></a>
+      <?php endif; ?>
+    <?php endfor; ?>
+
+    <!-- Next -->
+    <span class="<?php echo ($page >= $totalPages) ? 'disabled' : ''; ?>">
+      <?php if ($page < $totalPages): ?>
+        <a href="<?php echo build_query(['page' => $next]); ?>">&raquo;</a>
+      <?php else: ?>
+        &raquo;
+      <?php endif; ?>
+    </span>
+  </div>
 </div>
 
 
@@ -391,47 +432,48 @@ function display_role($r) {
 
 <!-- ====================== JS ====================== -->
 <script>
-
 function openModal(id){
-  const m=document.getElementById(id);
-  if(m) m.style.display="flex";
+  const m = document.getElementById(id);
+  if (m) m.style.display = "flex";
 }
 
 function closeModal(id){
-  const m=document.getElementById(id);
-  if(m) m.style.display="none";
+  const m = document.getElementById(id);
+  if (m) m.style.display = "none";
 }
 
-document.getElementById("openAddUserModal").onclick=()=>openModal("addUserModal");
-document.getElementById("addUserClose").onclick=()=>closeModal("addUserModal");
-document.getElementById("addUserCancel").onclick=()=>closeModal("addUserModal");
+// Add User
+document.getElementById("openAddUserModal").onclick  = () => openModal("addUserModal");
+document.getElementById("addUserClose").onclick      = () => closeModal("addUserModal");
+document.getElementById("addUserCancel").onclick     = () => closeModal("addUserModal");
 
-document.querySelectorAll(".user-edit-btn").forEach(btn=>{
-  btn.onclick=()=>{
-    document.getElementById("edit_user_id").value=btn.dataset.userId;
-    document.getElementById("edit_full_name").value=btn.dataset.fullName;
-    document.getElementById("edit_email").value=btn.dataset.email;
-    document.getElementById("edit_username").value=btn.dataset.username;
-    document.getElementById("edit_role").value=btn.dataset.role;
-    document.getElementById("edit_password").value="";
+// Edit User
+document.querySelectorAll(".user-edit-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.getElementById("edit_user_id").value   = btn.dataset.userId;
+    document.getElementById("edit_full_name").value = btn.dataset.fullName;
+    document.getElementById("edit_email").value     = btn.dataset.email;
+    document.getElementById("edit_username").value  = btn.dataset.username;
+    document.getElementById("edit_role").value      = btn.dataset.role;
+    document.getElementById("edit_password").value  = "";
     openModal("editUserModal");
   };
 });
 
-document.getElementById("editUserClose").onclick=()=>closeModal("editUserModal");
-document.getElementById("editUserCancel").onclick=()=>closeModal("editUserModal");
+document.getElementById("editUserClose").onclick  = () => closeModal("editUserModal");
+document.getElementById("editUserCancel").onclick = () => closeModal("editUserModal");
 
-document.querySelectorAll(".user-delete-btn").forEach(btn=>{
-  btn.onclick=()=>{
-    document.getElementById("delete_user_id").value=btn.dataset.userId;
-    document.getElementById("deleteUserText").textContent=
-      'This will remove user "'+btn.dataset.fullName+'" and any linked academic info.';
+// Delete User
+document.querySelectorAll(".user-delete-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.getElementById("delete_user_id").value = btn.dataset.userId;
+    document.getElementById("deleteUserText").textContent =
+      'This will remove user "' + btn.dataset.fullName + '" and any linked academic info.';
     openModal("deleteUserModal");
   };
 });
 
-document.getElementById("deleteUserCancel").onclick=()=>closeModal("deleteUserModal");
-
+document.getElementById("deleteUserCancel").onclick = () => closeModal("deleteUserModal");
 </script>
 
 </body>
