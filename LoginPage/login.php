@@ -16,10 +16,11 @@ session_start();
 require_once("../config/db_connect.php");
 require_once("../includes/security.php");
 require_once("../includes/mail_otp.php");
+require_once("../includes/logging.php"); // <-- ADDED
 
 $error = "";
 
-// LIGHT BRUTE-FORCE PROTECTION (optional but recommended)
+// LIGHT BRUTE-FORCE PROTECTION
 if (!isset($_SESSION['login_attempts'])) {
     $_SESSION['login_attempts'] = 0;
 }
@@ -31,8 +32,10 @@ if ($_SESSION['login_attempts'] >= 8) {
     }
 
     if (time() - $_SESSION['lockout_time'] < 60) {
-        // still locked out
-    } else {
+        // still locked out — also log
+        log_activity($conn, null, "Login Locked", "Account temporarily locked due to too many attempts.", "failed");
+    } 
+    else {
         $_SESSION['login_attempts'] = 0;
         unset($_SESSION['lockout_time']);
     }
@@ -45,7 +48,6 @@ if ($_SESSION['login_attempts'] >= 8) {
 
 if ($_SERVER["REQUEST_METHOD"] === "POST" && empty($error)) {
 
-    // Clean user input
     $username = clean($_POST["username"] ?? "");
     $password = clean($_POST["password"] ?? "");
 
@@ -62,6 +64,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && empty($error)) {
         $stmt->execute();
         $result = $stmt->get_result();
 
+        // ===========================
+        // USER FOUND
+        // ===========================
         if ($result->num_rows === 1) {
             $row = $result->fetch_assoc();
 
@@ -70,39 +75,56 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && empty($error)) {
                 // SESSION FIXATION PROTECTION
                 session_regenerate_id(true);
 
-                // Store base session data
+                // Set session
                 $_SESSION['user_id']   = $row['user_id'];
                 $_SESSION['username']  = $row['username'];
                 $_SESSION['role']      = $row['role'];
                 $_SESSION['full_name'] = $row['full_name'];
 
-                // Reset attempts on success
+                // Reset attempts
                 $_SESSION['login_attempts'] = 0;
 
-                // Reset 2FA status for admin
+                // Log SUCCESSFUL LOGIN
+                log_activity(
+                    $conn,
+                    (int)$row['user_id'],
+                    "Logged In",
+                    "User successfully logged in.",
+                    "success"
+                );
+
+                // Reset 2FA values
                 unset($_SESSION['otp_code'], $_SESSION['otp_expires'], $_SESSION['2fa_passed']);
 
-                // -----------------------------------
-                // ADMIN → 2FA WORKFLOW
-                // -----------------------------------
+                // ===========================
+                // ADMIN → 2FA
+                // ===========================
                 if ($row['role'] === 'admin') {
 
                     $otp = (string)rand(100000, 999999);
 
                     $_SESSION['otp_code']    = $otp;
-                    $_SESSION['otp_expires'] = time() + 300; // 5 minutes
+                    $_SESSION['otp_expires'] = time() + 300;
                     $_SESSION['2fa_passed']  = false;
 
-                    // Send OTP
                     send_otp_email($row['email'], $row['full_name'], $otp);
+
+                    // Log 2FA initiated
+                    log_activity(
+                        $conn,
+                        (int)$row['user_id'],
+                        "Admin 2FA Initiated",
+                        "OTP sent to admin email.",
+                        "success"
+                    );
 
                     header("Location: admin_2fa.php");
                     exit;
                 }
 
-                // -----------------------------------
+                // ===========================
                 // NORMAL ROLES
-                // -----------------------------------
+                // ===========================
                 switch ($row['role']) {
                     case 'student':
                         header("Location: ../StudentView/dashboard_st.php");
@@ -120,12 +142,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && empty($error)) {
                 // WRONG PASSWORD
                 $_SESSION['login_attempts']++;
                 $error = "Incorrect password.";
+
+                // Log FAILED LOGIN (wrong password)
+                log_activity(
+                    $conn,
+                    (int)$row['user_id'],
+                    "Login Failed",
+                    "Wrong password entered.",
+                    "failed"
+                );
             }
 
         } else {
             // USER NOT FOUND
             $_SESSION['login_attempts']++;
             $error = "User not found.";
+
+            // Log FAILED LOGIN (username doesn't exist)
+            log_activity(
+                $conn,
+                null,
+                "Login Failed",
+                "Unknown username entered: '{$username}'",
+                "failed"
+            );
         }
 
         $stmt->close();
