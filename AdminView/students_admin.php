@@ -2,6 +2,7 @@
 include("../includes/auth_session.php");
 include("../includes/auth_admin.php"); 
 include("../config/db_connect.php");
+include("../includes/logging.php"); // <-- ADDED
 
 // ================== FETCH LOGGED-IN USER HEADER INFO ==================
 $user_id   = $_SESSION['user_id'];
@@ -37,53 +38,88 @@ function build_query(array $overrides = []): string {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
+    // ================= SAVE STUDENT (ADD or UPDATE) =================
     if ($action === 'save_student') {
-        $user_id    = (int)($_POST['user_id'] ?? 0);
-        $student_id = trim($_POST['student_id'] ?? '');
-        $program    = trim($_POST['program'] ?? '');
-        $year_level = trim($_POST['year_level'] ?? '');
 
-        if ($user_id > 0) {
-            // Check if record already exists
+        $target_user_id = (int)($_POST['user_id'] ?? 0);
+        $student_id     = trim($_POST['student_id'] ?? '');
+        $program        = trim($_POST['program'] ?? '');
+        $year_level     = trim($_POST['year_level'] ?? '');
+
+        if ($target_user_id > 0) {
+
+            // Check if student_info row already exists
             $stmt = $conn->prepare("SELECT id FROM student_info WHERE user_id = ?");
-            $stmt->bind_param("i", $user_id);
+            $stmt->bind_param("i", $target_user_id);
             $stmt->execute();
             $stmt->bind_result($sid);
             $exists = $stmt->fetch();
             $stmt->close();
 
             if ($exists) {
-                // UPDATE — do NOT touch section column anymore
+                // UPDATE
                 $stmt = $conn->prepare("
                     UPDATE student_info
                     SET student_id = ?, program = ?, year_level = ?
                     WHERE user_id = ?
                 ");
-                $stmt->bind_param("sssi", $student_id, $program, $year_level, $user_id);
+                $stmt->bind_param("sssi", $student_id, $program, $year_level, $target_user_id);
+                $stmt->execute();
+                $stmt->close();
+
+                // LOG UPDATE ACTION
+                log_activity(
+                    $conn,
+                    (int)$user_id,
+                    "Updated Student Info",
+                    "Updated academic info for student user_id {$target_user_id} (Student ID: {$student_id}, Program: {$program}, Year: {$year_level}).",
+                    "success"
+                );
+
             } else {
-                // INSERT — section left to its default (NULL)
+                // INSERT
                 $stmt = $conn->prepare("
                     INSERT INTO student_info (user_id, student_id, program, year_level)
                     VALUES (?, ?, ?, ?)
                 ");
-                $stmt->bind_param("isss", $user_id, $student_id, $program, $year_level);
-            }
+                $stmt->bind_param("isss", $target_user_id, $student_id, $program, $year_level);
+                $stmt->execute();
+                $stmt->close();
 
-            $stmt->execute();
-            $stmt->close();
+                // LOG INSERT ACTION
+                log_activity(
+                    $conn,
+                    (int)$user_id,
+                    "Added Student Info",
+                    "Created academic info for student user_id {$target_user_id} (Student ID: {$student_id}, Program: {$program}, Year: {$year_level}).",
+                    "success"
+                );
+            }
         }
 
         header("Location: students_admin.php" . build_query(['page' => null]));
         exit;
+    }
 
-    } elseif ($action === 'delete_student') {
+    // ================= DELETE STUDENT INFO =================
+    elseif ($action === 'delete_student') {
 
-        $user_id = (int)($_POST['user_id'] ?? 0);
-        if ($user_id > 0) {
+        $target_user_id = (int)($_POST['user_id'] ?? 0);
+
+        if ($target_user_id > 0) {
             $stmt = $conn->prepare("DELETE FROM student_info WHERE user_id = ?");
-            $stmt->bind_param("i", $user_id);
+            $stmt->bind_param("i", $target_user_id);
             $stmt->execute();
             $stmt->close();
+
+            // LOG DELETE ACTION
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Deleted Student Info",
+                "Removed academic info for student user_id {$target_user_id}.",
+                "success"
+            );
         }
 
         header("Location: students_admin.php" . build_query(['page' => null]));
@@ -197,9 +233,7 @@ if ($programRes) {
     <main class="main-content">
       <!-- Topbar -->
       <header class="topbar">
-        <!-- Invisible placeholder to preserve spacing -->
         <div class="search-container" style="visibility:hidden;"></div>
-
         <div class="profile-section">
           <img src="<?php echo $avatar; ?>" class="avatar">
           <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
@@ -219,9 +253,7 @@ if ($programRes) {
               placeholder="Search by ID, name, program, email..."
               value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>"
             >
-            <button type="submit">
-              <i class="fa-solid fa-magnifying-glass"></i>
-            </button>
+            <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
 
             <?php if ($search !== ''): ?>
               <a href="students_admin.php" class="clear-link">Clear</a>
@@ -248,9 +280,7 @@ if ($programRes) {
             </thead>
             <tbody>
             <?php if (empty($students)): ?>
-              <tr>
-                <td colspan="6" style="text-align:center;">No students found.</td>
-              </tr>
+              <tr><td colspan="6" style="text-align:center;">No students found.</td></tr>
             <?php else: ?>
               <?php foreach ($students as $st): ?>
                 <tr>
@@ -313,14 +343,9 @@ if ($programRes) {
         </select>
 
         <label>Student ID</label>
-        <input
-          type="text"
-          id="studentIdInput"
-          name="student_id"
-          placeholder="e.g. 2025-001"
-        >
+        <input type="text" id="studentIdInput" name="student_id" placeholder="e.g. 2025-001">
 
-        <label>Program</label>
+        <label program>Select Program</label>
         <select id="programSelect" name="program">
           <option value="">-- Select program --</option>
           <?php foreach ($programs as $progName): ?>
@@ -331,15 +356,7 @@ if ($programRes) {
         </select>
 
         <label>Year Level</label>
-        <input
-          type="number"
-          id="yearInput"
-          name="year_level"
-          min="1"
-          max="6"
-          step="1"
-          placeholder="Year level (1-6)"
-        >
+        <input type="number" id="yearInput" name="year_level" min="1" max="6" step="1">
 
         <div class="button-group">
           <button type="submit" class="save-btn">Save</button>
@@ -352,9 +369,7 @@ if ($programRes) {
   <!-- Delete Confirmation Modal -->
   <div id="studentDeleteModal" class="modal">
     <div class="logout-modal">
-      <div class="logout-icon">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-      </div>
+      <div class="logout-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
       <h3>Delete Student Academic Info?</h3>
       <p id="deleteStudentText"></p>
 
@@ -378,9 +393,7 @@ if ($programRes) {
       <span class="<?php echo ($page <= 1) ? 'disabled' : ''; ?>">
         <?php if ($page > 1): ?>
           <a href="<?php echo build_query(['page' => $prev]); ?>">&laquo;</a>
-        <?php else: ?>
-          &laquo;
-        <?php endif; ?>
+        <?php else: ?>&laquo;<?php endif; ?>
       </span>
 
       <?php for ($i = 1; $i <= $totalPages; $i++): ?>
@@ -394,9 +407,7 @@ if ($programRes) {
       <span class="<?php echo ($page >= $totalPages) ? 'disabled' : ''; ?>">
         <?php if ($page < $totalPages): ?>
           <a href="<?php echo build_query(['page' => $next]); ?>">&raquo;</a>
-        <?php else: ?>
-          &raquo;
-        <?php endif; ?>
+        <?php else: ?>&raquo;<?php endif; ?>
       </span>
     </div>
   </div>
