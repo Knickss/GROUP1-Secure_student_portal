@@ -93,17 +93,18 @@ $stmt->close();
               </div>
 
               <!-- Modal for each course -->
-              <div id="modal<?= $row['course_id']; ?>" class="modal">
-                <div class="modal-content">
-                  <span class="close" onclick="closeModal('modal<?= $row['course_id']; ?>')">&times;</span>
-                  
-                  <h2><?= htmlspecialchars($row['course_code']) . ": " . htmlspecialchars($row['course_name']); ?></h2>
+<div id="modal<?= $row['course_id']; ?>" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('modal<?= $row['course_id']; ?>')">&times;</span>
+    
+    <h2><?= htmlspecialchars($row['course_code']) . ": " . htmlspecialchars($row['course_name']); ?></h2>
 
-                  <p style="white-space:pre-wrap; margin-top:10px;">
-                    <?= nl2br(htmlspecialchars($row['description'] ?? "No description available.")); ?>
-                  </p>
-                </div>
-              </div>
+    <p style="white-space:pre-wrap; margin-top:10px; text-align:center;">
+      <?= nl2br(htmlspecialchars($row['description'] ?? "No description available.")); ?>
+    </p>
+  </div>
+</div>
+
 
             <?php endwhile; ?>
           <?php else: ?>
