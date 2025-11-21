@@ -3,10 +3,22 @@ include("../includes/auth_session.php");
 include("../includes/auth_student.php");
 include("../config/db_connect.php");
 
-$user_id = $_SESSION['user_id'];
+$user_id   = $_SESSION['user_id'];
 $full_name = $_SESSION['full_name'];
 
-// Fetch enrolled courses with instructor details
+/* ===================== FETCH PROFILE PIC ===================== */
+$stmt = $conn->prepare("SELECT profile_pic FROM users WHERE user_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($profile_pic);
+$stmt->fetch();
+$stmt->close();
+
+$avatar = !empty($profile_pic)
+    ? "../uploads/" . htmlspecialchars($profile_pic)
+    : "images/ProfilePic.png";
+
+/* ===================== FETCH ENROLLED COURSES ===================== */
 $stmt = $conn->prepare("
   SELECT 
     c.course_id,
@@ -36,6 +48,7 @@ $stmt->close();
   <link rel="stylesheet" href="CSS/format.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
+
 <body>
   <div class="portal-layout">
 
@@ -44,16 +57,14 @@ $stmt->close();
 
     <!-- Main Content -->
     <main class="main-content">
+
+      <!-- CLEAN TOPBAR (no search, no dropdown) -->
       <header class="topbar">
-        <div class="search-container">
-          <input type="text" placeholder="Search courses..." class="search-bar" id="courseSearch">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        </div>
+        <div></div> <!-- Keeps spacing aligned -->
 
         <div class="profile-section">
-          <img src="images/ProfilePic.png" alt="User Avatar" class="avatar">
-          <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
-          <i class="fa-solid fa-chevron-down dropdown-icon"></i>
+          <img src="<?= $avatar ?>" class="avatar">
+          <span class="profile-name"><?= htmlspecialchars($full_name) ?></span>
         </div>
       </header>
 
@@ -65,54 +76,55 @@ $stmt->close();
         <div class="course-grid">
           <?php if ($courses->num_rows > 0): ?>
             <?php while ($row = $courses->fetch_assoc()): ?>
+              
               <div class="course-card">
-                <h3><?php echo htmlspecialchars($row['course_code']) . ": " . htmlspecialchars($row['course_name']); ?></h3>
-                <p><strong>Instructor:</strong> <?php echo htmlspecialchars($row['instructor_name'] ?? "TBA"); ?></p>
-                <p><strong>Units:</strong> <?php echo htmlspecialchars($row['units']); ?></p>
-                <p><strong>Schedule:</strong> <?php echo htmlspecialchars($row['schedule_day'] ?? "TBA"); ?> | <?php echo htmlspecialchars($row['schedule_time'] ?? "TBA"); ?></p>
-                <button class="details-btn" onclick="openModal('modal<?php echo $row['course_id']; ?>')">View Details</button>
+                <h3><?= htmlspecialchars($row['course_code']) . ": " . htmlspecialchars($row['course_name']); ?></h3>
+
+                <p><strong>Instructor:</strong> <?= htmlspecialchars($row['instructor_name'] ?? "TBA"); ?></p>
+                <p><strong>Units:</strong> <?= htmlspecialchars($row['units']); ?></p>
+                <p><strong>Schedule:</strong> 
+                  <?= htmlspecialchars($row['schedule_day'] ?? "TBA"); ?> | 
+                  <?= htmlspecialchars($row['schedule_time'] ?? "TBA"); ?>
+                </p>
+
+                <button class="details-btn" onclick="openModal('modal<?= $row['course_id']; ?>')">
+                  <i class="fa-solid fa-eye"></i> View Details
+                </button>
               </div>
 
               <!-- Modal for each course -->
-              <div id="modal<?php echo $row['course_id']; ?>" class="modal">
+              <div id="modal<?= $row['course_id']; ?>" class="modal">
                 <div class="modal-content">
-                  <span class="close" onclick="closeModal('modal<?php echo $row['course_id']; ?>')">&times;</span>
-                  <h2><?php echo htmlspecialchars($row['course_code']) . ": " . htmlspecialchars($row['course_name']); ?></h2>
-                  <p><?php echo nl2br(htmlspecialchars($row['description'] ?? "No description available.")); ?></p>
+                  <span class="close" onclick="closeModal('modal<?= $row['course_id']; ?>')">&times;</span>
+                  
+                  <h2><?= htmlspecialchars($row['course_code']) . ": " . htmlspecialchars($row['course_name']); ?></h2>
+
+                  <p style="white-space:pre-wrap; margin-top:10px;">
+                    <?= nl2br(htmlspecialchars($row['description'] ?? "No description available.")); ?>
+                  </p>
                 </div>
               </div>
+
             <?php endwhile; ?>
           <?php else: ?>
             <p>No enrolled courses found.</p>
           <?php endif; ?>
         </div>
+
       </section>
     </main>
   </div>
 
   <script>
-    // Modal controls
-    function openModal(id) {
-      document.getElementById(id).style.display = "flex";
-    }
-    function closeModal(id) {
-      document.getElementById(id).style.display = "none";
-    }
-    window.onclick = function(event) {
-      const modals = document.querySelectorAll(".modal");
-      modals.forEach(m => {
-        if (event.target === m) m.style.display = "none";
+    function openModal(id){ document.getElementById(id).style.display = "flex"; }
+    function closeModal(id){ document.getElementById(id).style.display = "none"; }
+
+    window.onclick = function(event){
+      document.querySelectorAll(".modal").forEach(m => {
+        if(event.target === m) m.style.display = "none";
       });
     };
-
-    // Simple search filter
-    document.getElementById("courseSearch").addEventListener("keyup", function() {
-      const query = this.value.toLowerCase();
-      document.querySelectorAll(".course-card").forEach(card => {
-        const text = card.textContent.toLowerCase();
-        card.style.display = text.includes(query) ? "block" : "none";
-      });
-    });
   </script>
+
 </body>
 </html>
