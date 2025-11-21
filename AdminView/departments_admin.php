@@ -2,6 +2,7 @@
 include("../includes/auth_session.php");
 include("../includes/auth_admin.php"); 
 include("../config/db_connect.php");
+include("../includes/logging.php"); // <-- ADDED
 
 // =======================
 // FETCH ADMIN INFO
@@ -35,7 +36,7 @@ function build_query(array $overrides = []): string {
 }
 
 // =======================
-// HANDLE POST ACTIONS
+// HANDLE POST ACTIONS (LOGGING ADDED)
 // =======================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -46,16 +47,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $dept_name = trim($_POST['department_name'] ?? '');
 
         if ($dept_name !== "") {
+
             if ($dept_id > 0) {
+                // ---- UPDATE ----
                 $stmt = $conn->prepare("UPDATE departments SET department_name = ? WHERE department_id = ?");
                 $stmt->bind_param("si", $dept_name, $dept_id);
+                $stmt->execute();
+                $stmt->close();
+
+                // LOG UPDATE
+                log_activity(
+                    $conn,
+                    (int)$user_id,
+                    "Edited Department",
+                    "Updated department ID {$dept_id} to '{$dept_name}'.",
+                    "success"
+                );
+
             } else {
+                // ---- INSERT ----
                 $stmt = $conn->prepare("INSERT INTO departments (department_name) VALUES (?)");
                 $stmt->bind_param("s", $dept_name);
-            }
+                $stmt->execute();
+                $stmt->close();
 
-            $stmt->execute();
-            $stmt->close();
+                // LOG ADD
+                log_activity(
+                    $conn,
+                    (int)$user_id,
+                    "Added Department",
+                    "Created new department '{$dept_name}'.",
+                    "success"
+                );
+            }
         }
 
         header("Location: departments_admin.php" . build_query(['page' => null]));
@@ -67,10 +91,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $dept_id = (int)($_POST['department_id'] ?? 0);
 
         if ($dept_id > 0) {
+
+            // fetch name for logging clarity
+            $stmt = $conn->prepare("SELECT department_name FROM departments WHERE department_id = ?");
+            $stmt->bind_param("i", $dept_id);
+            $stmt->execute();
+            $stmt->bind_result($dname);
+            $stmt->fetch();
+            $stmt->close();
+
+            // delete
             $stmt = $conn->prepare("DELETE FROM departments WHERE department_id = ?");
             $stmt->bind_param("i", $dept_id);
             $stmt->execute();
             $stmt->close();
+
+            // LOG DELETE
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Deleted Department",
+                "Deleted department ID {$dept_id} ('{$dname}').",
+                "success"
+            );
         }
 
         header("Location: departments_admin.php" . build_query(['page' => null]));
@@ -79,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // =======================
-// SEARCH / PAGINATION
+// SEARCH / PAGINATION (UNCHANGED)
 // =======================
 $search  = trim($_GET['search'] ?? '');
 $perPage = 10;
