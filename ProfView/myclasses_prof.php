@@ -3,38 +3,50 @@ include("../includes/auth_session.php");
 include("../includes/auth_teacher.php");
 include("../config/db_connect.php");
 
-// Ensure only teachers can access
 if ($_SESSION['role'] !== 'teacher') {
-  header("Location: ../LoginPage/login.php");
-  exit;
+    header("Location: ../LoginPage/login.php");
+    exit;
 }
 
 $teacher_id = $_SESSION['user_id'];
+$full_name  = $_SESSION['full_name'] ?? 'Teacher';
 
-// Fetch courses assigned to the teacher
-$query = "
-  SELECT c.course_id, c.course_code, c.course_name, c.semester, 
-         c.schedule_day, c.schedule_time, c.description
-  FROM courses c
-  WHERE c.teacher_id = ?
+/* ================= PROFILE PICTURE ================= */
+$stmt = $conn->prepare("SELECT profile_pic FROM users WHERE user_id = ?");
+$stmt->bind_param("i", $teacher_id);
+$stmt->execute();
+$stmt->bind_result($profile_pic);
+$stmt->fetch();
+$stmt->close();
+
+$avatar = (!empty($profile_pic))
+    ? "../uploads/" . htmlspecialchars($profile_pic)
+    : "images/ProfileImg.png";
+
+/* ================= FETCH COURSES ================= */
+$sql = "
+  SELECT course_id, course_code, course_name, semester,
+         schedule_day, schedule_time, description
+  FROM courses
+  WHERE teacher_id = ?
 ";
-$stmt = $conn->prepare($query);
+$stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $teacher_id);
 $stmt->execute();
 $courses = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-// Count students per course
+/* ================= COUNT STUDENTS ================= */
 $student_counts = [];
-foreach ($courses as $course) {
-  $cid = $course['course_id'];
-  $count_sql = "SELECT COUNT(*) AS total_students FROM enrollments WHERE course_id = ?";
-  $count_stmt = $conn->prepare($count_sql);
-  $count_stmt->bind_param("i", $cid);
-  $count_stmt->execute();
-  $result = $count_stmt->get_result()->fetch_assoc();
-  $student_counts[$cid] = $result['total_students'] ?? 0;
-  $count_stmt->close();
+foreach ($courses as $c) {
+    $cid = $c['course_id'];
+
+    $stmt = $conn->prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ?");
+    $stmt->bind_param("i", $cid);
+    $stmt->execute();
+    $res = $stmt->get_result()->fetch_assoc();
+    $student_counts[$cid] = $res['total'] ?? 0;
+    $stmt->close();
 }
 ?>
 <!DOCTYPE html>
@@ -45,115 +57,138 @@ foreach ($courses as $course) {
   <link rel="stylesheet" href="CSS/format.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
+
 <body>
-  <div class="portal-layout">
+<div class="portal-layout">
 
-    <?php include('sidebar_prof.php'); ?>
+<?php include('sidebar_prof.php'); ?>
 
-    <main class="main-content">
-      <header class="topbar">
-        <div class="search-container">
-          <input type="text" placeholder="Search classes..." class="search-bar">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        </div>
+<main class="main-content">
 
-        <div class="profile-section">
-          <img src="images/ProfileImg.png" alt="User Avatar" class="avatar">
-          <span class="profile-name"><?= htmlspecialchars($_SESSION['full_name']) ?></span>
-          <i class="fa-solid fa-chevron-down dropdown-icon"></i>
-        </div>
-      </header>
+  <!-- CLEAN TOPBAR -->
+  <header class="topbar">
+      <div></div>
+      <div class="profile-section">
+          <img src="<?= $avatar ?>" class="avatar">
+          <span class="profile-name"><?= htmlspecialchars($full_name) ?></span>
+      </div>
+  </header>
 
-      <section class="dashboard-body">
-        <h1>My Classes</h1>
-        <p class="semester-text">Teaching Load – 1st Semester, A.Y. 2025–2026</p>
+  <section class="dashboard-body">
 
-        <div class="course-grid">
-          <?php if (count($courses) > 0): ?>
-            <?php foreach ($courses as $course): ?>
-              <div class="course-card">
-                <h3><?= htmlspecialchars($course['course_code']) . ': ' . htmlspecialchars($course['course_name']) ?></h3>
-                <p><strong>Semester:</strong> <?= htmlspecialchars($course['semester']) ?></p>
-                <p><strong>Schedule:</strong> <?= htmlspecialchars($course['schedule_day']) ?> | <?= htmlspecialchars($course['schedule_time']) ?></p>
-                <p><strong>Students:</strong> <?= $student_counts[$course['course_id']] ?></p>
-                <div class="card-actions">
-                  <button class="details-btn" onclick="openModal('modal<?= $course['course_id'] ?>')">View Students</button>
-                  <button class="export-btn">Export List</button>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <p>No assigned classes yet.</p>
-          <?php endif; ?>
-        </div>
+    <h1>My Classes</h1>
+    <p class="semester-text">Teaching Load – 1st Semester, A.Y. 2025–2026</p>
 
-        <?php foreach ($courses as $course): ?>
-          <?php
-            // Fetch enrolled students per course
-            $sql = "
-              SELECT u.student_id, u.full_name, u.email
-              FROM enrollments e
-              JOIN users u ON e.student_id = u.user_id
-              WHERE e.course_id = ?
-            ";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("i", $course['course_id']);
-            $stmt->execute();
-            $students = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            $stmt->close();
-          ?>
-          <div id="modal<?= $course['course_id'] ?>" class="modal">
-            <div class="modal-content large-modal">
-              <span class="close" onclick="closeModal('modal<?= $course['course_id'] ?>')">&times;</span>
-              <h2><?= htmlspecialchars($course['course_code']) ?>: <?= htmlspecialchars($course['course_name']) ?></h2>
-              <p><strong>Schedule:</strong> <?= htmlspecialchars($course['schedule_day']) ?> | <?= htmlspecialchars($course['schedule_time']) ?></p>
+    <div class="course-grid">
 
-              <?php if (count($students) > 0): ?>
-                <table class="student-table">
-                  <thead>
-                    <tr>
-                      <th>Student ID</th>
-                      <th>Student Name</th>
-                      <th>Email</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <?php foreach ($students as $st): ?>
-                      <tr>
-                        <td><?= htmlspecialchars($st['student_id'] ?? '') ?></td>
+      <?php if (!empty($courses)): ?>
+        <?php foreach ($courses as $c): ?>
+        <div class="course-card">
 
-                        <td><?= htmlspecialchars($st['full_name'] ?? '') ?></td>
-                        <td><?= htmlspecialchars($st['email'] ?? '') ?></td>
+          <h3><?= htmlspecialchars($c['course_code'] . ": " . $c['course_name']) ?></h3>
 
-                      </tr>
-                    <?php endforeach; ?>
-                  </tbody>
-                </table>
-              <?php else: ?>
-                <p>No enrolled students yet.</p>
-              <?php endif; ?>
-            </div>
+          <p><strong>Semester:</strong> <?= htmlspecialchars($c['semester']) ?></p>
+          <p><strong>Schedule:</strong> <?= htmlspecialchars($c['schedule_day']) ?> | <?= htmlspecialchars($c['schedule_time']) ?></p>
+          <p><strong>Students:</strong> <?= $student_counts[$c['course_id']] ?></p>
+
+          <div class="card-actions">
+            <button class="details-btn" onclick="openModal('modal<?= $c['course_id'] ?>')">View Students</button>
+            <button class="export-btn">Export List</button>
           </div>
+
+        </div>
         <?php endforeach; ?>
+      <?php else: ?>
+        <p>No assigned classes yet.</p>
+      <?php endif; ?>
 
-      </section>
-    </main>
-  </div>
+    </div>
 
-  <script>
-    function openModal(id) {
-      document.getElementById(id).style.display = "flex";
-    }
 
-    function closeModal(id) {
-      document.getElementById(id).style.display = "none";
-    }
+    <!-- ================= STUDENT LIST MODALS ================ -->
+    <?php foreach ($courses as $c): ?>
 
-    window.onclick = function(event) {
-      document.querySelectorAll(".modal").forEach(m => {
-        if (event.target === m) m.style.display = "none";
-      });
-    };
-  </script>
+      <?php
+      /* FETCH STUDENTS (with student_id, program, year_level) */
+      $sql = "
+        SELECT 
+          si.student_id,
+          si.program,
+          si.year_level,
+          u.full_name,
+          u.email
+        FROM enrollments e
+        JOIN student_info si ON si.user_id = e.student_id
+        JOIN users u ON u.user_id = e.student_id
+        WHERE e.course_id = ?
+      ";
+
+      $stmt = $conn->prepare($sql);
+      $stmt->bind_param("i", $c['course_id']);
+      $stmt->execute();
+      $students = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+      $stmt->close();
+      ?>
+
+      <div id="modal<?= $c['course_id'] ?>" class="modal">
+        <div class="modal-content large-modal">
+          <span class="close" onclick="closeModal('modal<?= $c['course_id'] ?>')">&times;</span>
+
+          <h2><?= htmlspecialchars($c['course_code']) ?>: <?= htmlspecialchars($c['course_name']) ?></h2>
+          <p><strong>Schedule:</strong> <?= htmlspecialchars($c['schedule_day']) ?> | <?= htmlspecialchars($c['schedule_time']) ?></p>
+
+          <?php if (!empty($students)): ?>
+          <table class="student-table">
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Program</th>
+                <th>Year Level</th>
+              </tr>
+            </thead>
+
+            <tbody>
+            <?php foreach ($students as $s): ?>
+              <tr>
+                <td><?= htmlspecialchars($s['student_id']) ?></td>
+                <td><?= htmlspecialchars($s['full_name']) ?></td>
+                <td><?= htmlspecialchars($s['email']) ?></td>
+                <td><?= htmlspecialchars($s['program']) ?></td>
+                <td><?= htmlspecialchars($s['year_level']) ?></td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
+
+          <?php else: ?>
+            <p>No enrolled students yet.</p>
+          <?php endif; ?>
+
+        </div>
+      </div>
+
+    <?php endforeach; ?>
+
+  </section>
+</main>
+
+</div>
+
+<script>
+function openModal(id){
+  document.getElementById(id).style.display = "flex";
+}
+function closeModal(id){
+  document.getElementById(id).style.display = "none";
+}
+window.onclick = function(e){
+  document.querySelectorAll(".modal").forEach(modal => {
+    if(e.target === modal) modal.style.display = "none";
+  });
+}
+</script>
+
 </body>
 </html>
