@@ -2448,6 +2448,111 @@ body {
   background-color: #fbdada;
 }
 
+    .pagination-bar {
+      position: fixed;
+      left: 190px;          /* align with sidebar width */
+      right: 0;
+      bottom: 15px;
+      display: flex;
+      justify-content: center;
+      z-index: 50;
+      pointer-events: none;
+    }
+    .pagination-inner {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 6px 14px;
+      border-radius: 999px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      display: flex;
+      gap: 6px;
+      pointer-events: auto;
+    }
+    .pagination-inner a,
+    .pagination-inner span {
+      min-width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .pagination-inner a {
+      background: #f8c9df;
+      color: #b21e8f;
+    }
+    .pagination-inner a:hover {
+      background: #f3bcd6;
+    }
+    .pagination-inner .current-page {
+      background: #b21e8f;
+      color: white;
+      font-weight: bold;
+    }
+    .pagination-inner .disabled {
+      background: #eee;
+      color: #aaa;
+      cursor: default;
+    }
 
+    .user-controls-form {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .user-controls-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    /* DROPDOWN stays normal size */
+.user-controls-left select {
+    padding: 8px 12px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+/* SEARCH BAR gets the bigger width */
+.user-controls-left input[type="text"] {
+    padding: 8px 20px;
+    border-radius: 30px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    min-width: 280px;   /* adjust if needed */
+}
+
+    .user-controls-left button {
+      background: #b21e8f;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+    .user-controls-left button:hover {
+      background: #d22aa6;
+    }
+    .add-btn {
+      background: #b21e8f;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 11px 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .add-btn:hover {
+      background: #d22aa6;
+    }
 
 
