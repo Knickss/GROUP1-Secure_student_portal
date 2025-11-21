@@ -93,7 +93,6 @@ foreach ($courses as $c) {
 
           <div class="card-actions">
             <button class="details-btn" onclick="openModal('modal<?= $c['course_id'] ?>')">View Students</button>
-            <button class="export-btn">Export List</button>
           </div>
 
         </div>
@@ -109,7 +108,7 @@ foreach ($courses as $c) {
     <?php foreach ($courses as $c): ?>
 
       <?php
-      /* FETCH STUDENTS (with student_id, program, year_level) */
+      /* FETCH STUDENTS */
       $sql = "
         SELECT 
           si.student_id,
