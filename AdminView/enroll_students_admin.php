@@ -2,6 +2,7 @@
 include("../includes/auth_session.php");
 include("../includes/auth_admin.php"); 
 include("../config/db_connect.php");
+include("../includes/logging.php"); // <-- ADDED
 
 /* ---------------------------------------------------------
    ADMIN INFO (for topbar avatar + name)
@@ -35,7 +36,7 @@ function build_query(array $overrides = []): string {
 }
 
 /* ---------------------------------------------------------
-   SAVE ENROLLMENTS
+   SAVE ENROLLMENTS  (LOGGING INCLUDED HERE)
 --------------------------------------------------------- */
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
@@ -44,15 +45,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if ($course_id > 0) {
 
+        // Fetch course info for logging
+        $stmt = $conn->prepare("SELECT course_code, course_name FROM courses WHERE course_id = ?");
+        $stmt->bind_param("i", $course_id);
+        $stmt->execute();
+        $stmt->bind_result($ccode, $cname);
+        $stmt->fetch();
+        $stmt->close();
+
         $selected_students = array_map("intval", $selected_students);
 
-        // Clear old enrollments
+        // ----------- CLEAR OLD ENROLLMENTS -----------
         $stmt = $conn->prepare("DELETE FROM enrollments WHERE course_id = ?");
         $stmt->bind_param("i", $course_id);
         $stmt->execute();
         $stmt->close();
 
-        // Insert new
+        // ----------- INSERT NEW ENROLLMENTS -----------
         if (!empty($selected_students)) {
             $stmt = $conn->prepare("
                 INSERT INTO enrollments (student_id, course_id, date_enrolled)
@@ -63,6 +72,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $stmt->execute();
             }
             $stmt->close();
+
+            // ---------- LOGGING: students enrolled ----------
+            $list = implode(", ", $selected_students);
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Updated Enrollments",
+                "Assigned students [{$list}] to {$ccode} - {$cname}.",
+                "success"
+            );
+
+        } else {
+            // ---------- LOGGING: enrollments cleared ----------
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Updated Enrollments",
+                "Cleared all student enrollments for {$ccode} - {$cname}.",
+                "success"
+            );
         }
     }
 
@@ -216,12 +245,9 @@ if ($course_id > 0) {
 <main class="main-content">
 
 <header class="topbar">
-
-    <!-- No search bar in topbar -->
     <div class="topbar-left"></div>
-
     <div class="profile-section">
-        <img src="<?= htmlspecialchars($avatar); ?>" class="avatar" alt="User Avatar">
+        <img src="<?= htmlspecialchars($avatar); ?>" class="avatar">
         <span class="profile-name"><?= htmlspecialchars($full_name); ?></span>
     </div>
 </header>
@@ -234,12 +260,8 @@ if ($course_id > 0) {
 <div class="enroll-toolbar">
 <form method="get" class="enroll-course-form">
 
-    <!-- DROPDOWN -->
     <select name="course"
-        onchange="
-            if (this.value === '') this.form.course_search.value='';
-            this.form.submit();
-        ">
+        onchange="if (this.value === '') this.form.course_search.value=''; this.form.submit();">
         <option value="">-- Select Course --</option>
 
         <?php foreach ($courses as $c): ?>
@@ -251,14 +273,12 @@ if ($course_id > 0) {
 
     </select>
 
-    <!-- SEARCH INPUT -->
     <input type="text"
         name="course_search"
         placeholder="Search course code or name..."
         value="<?= htmlspecialchars($course_search); ?>"
     >
 
-    <!-- BUTTON -->
     <button type="submit" class="enroll-search-btn"
         onclick="this.form.course.value='';">
         <i class="fa-solid fa-magnifying-glass"></i>
@@ -267,7 +287,6 @@ if ($course_id > 0) {
 </form>
 </div>
 
-<!-- COURSE DETAILS -->
 <?php if ($course_id > 0 && $currentCourse): ?>
 <div class="enroll-course-summary">
 
@@ -278,17 +297,17 @@ if ($course_id > 0) {
 
     <div class="enroll-course-meta">
         <?php if (!empty($currentCourse["teacher_name"])): ?>
-            <span><strong>Teacher:</strong> <?= htmlspecialchars($currentCourse["teacher_name"]); ?></span>
+        <span><strong>Teacher:</strong> <?= htmlspecialchars($currentCourse["teacher_name"]); ?></span>
         <?php endif; ?>
 
         <?php if (!empty($currentCourse["semester"])): ?>
-            <span><strong>Semester:</strong> <?= htmlspecialchars($currentCourse["semester"]); ?></span>
+        <span><strong>Semester:</strong> <?= htmlspecialchars($currentCourse["semester"]); ?></span>
         <?php endif; ?>
 
         <?php if (!empty($currentCourse["schedule_day"]) || !empty($currentCourse["schedule_time"])): ?>
-            <span><strong>Schedule:</strong>
-                <?= htmlspecialchars(trim(($currentCourse["schedule_day"] ?? '') . ' ' . ($currentCourse["schedule_time"] ?? ''))); ?>
-            </span>
+        <span><strong>Schedule:</strong>
+            <?= htmlspecialchars(trim(($currentCourse["schedule_day"] ?? '') . ' ' . ($currentCourse["schedule_time"] ?? ''))); ?>
+        </span>
         <?php endif; ?>
     </div>
 
@@ -298,7 +317,6 @@ if ($course_id > 0) {
 <p class="enroll-empty-hint">Select a course above to manage enrollments.</p>
 <?php endif; ?>
 
-<!-- STUDENT SEARCH -->
 <?php if ($course_id > 0): ?>
 <form method="get" class="enroll-student-search">
     <input type="hidden" name="course" value="<?= $course_id; ?>">
@@ -310,7 +328,6 @@ if ($course_id > 0) {
 </form>
 <?php endif; ?>
 
-<!-- STUDENT LIST -->
 <?php if ($course_id > 0): ?>
 <form method="post" class="enroll-students-form">
     <input type="hidden" name="course_id" value="<?= $course_id; ?>">
@@ -336,7 +353,6 @@ if ($course_id > 0) {
             ?>
 
             <label class="enroll-students-row">
-
                 <div class="enroll-student-left">
                     <input type="checkbox"
                         name="students[]"
@@ -355,7 +371,6 @@ if ($course_id > 0) {
                         </div>
                     </div>
                 </div>
-
             </label>
 
             <?php endforeach; ?>
