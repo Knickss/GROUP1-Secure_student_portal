@@ -1,5 +1,13 @@
 <?php
-  $current_page = basename($_SERVER['PHP_SELF']);
+// ========== SECURITY CHECK: TEACHERS ONLY ==========
+if (!isset($_SESSION)) { session_start(); }
+
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'teacher') {
+    header("Location: ../LoginPage/login.php");
+    exit;
+}
+
+$current_page = basename($_SERVER['PHP_SELF']);
 ?>
 
 <div class="sidebar">
@@ -8,21 +16,32 @@
   </div>
 
   <div class="sidebar-menu">
-    <a href="dashboard_prof.php" class="<?php echo ($current_page == 'dashboard_prof.php') ? 'active' : ''; ?>">
+
+    <a href="dashboard_prof.php"
+       class="<?= ($current_page == 'dashboard_prof.php') ? 'active' : ''; ?>">
       <i class="fa-solid fa-chalkboard"></i> Dashboard
     </a>
-    <a href="myclasses_prof.php" class="<?php echo ($current_page == 'myclasses_prof.php') ? 'active' : ''; ?>">
+
+    <a href="myclasses_prof.php"
+       class="<?= ($current_page == 'myclasses_prof.php') ? 'active' : ''; ?>">
       <i class="fa-solid fa-book-open"></i> My Classes
     </a>
-    <a href="grades_prof.php" class="<?php echo ($current_page == 'grades_prof.php') ? 'active' : ''; ?>">
+
+    <a href="grades_prof.php"
+       class="<?= ($current_page == 'grades_prof.php') ? 'active' : ''; ?>">
       <i class="fa-solid fa-pen-to-square"></i> Grades Management
     </a>
-    <a href="announcements_prof.php" class="<?php echo ($current_page == 'announcements_prof.php') ? 'active' : ''; ?>">
+
+    <a href="announcements_prof.php"
+       class="<?= ($current_page == 'announcements_prof.php') ? 'active' : ''; ?>">
       <i class="fa-solid fa-bullhorn"></i> Announcements
     </a>
-    <a href="profile_prof.php" class="<?php echo ($current_page == 'profile_prof.php') ? 'active' : ''; ?>">
+
+    <a href="profile_prof.php"
+       class="<?= ($current_page == 'profile_prof.php') ? 'active' : ''; ?>">
       <i class="fa-solid fa-user-tie"></i> Profile
     </a>
+
   </div>
 
   <div class="sidebar-footer">
@@ -51,23 +70,21 @@
     const logoutLink = document.getElementById("logout-link");
     const modal = document.getElementById("logoutModal");
 
-    if (logoutLink && modal) {
-      logoutLink.addEventListener("click", (event) => {
-        event.preventDefault();
-        modal.style.display = "flex";
-      });
-    }
+    logoutLink.onclick = (e) => {
+      e.preventDefault();
+      modal.style.display = "flex";
+    };
 
-    window.closeLogoutModal = function() {
+    window.closeLogoutModal = () => {
       modal.style.display = "none";
     };
 
-    window.confirmLogout = function() {
-      window.location.href = "../logout.php"; // same as student, goes one folder up
+    window.confirmLogout = () => {
+      window.location.href = "../logout.php";
     };
 
-    window.addEventListener("click", (event) => {
+    window.onclick = (event) => {
       if (event.target === modal) closeLogoutModal();
-    });
+    };
   });
 </script>

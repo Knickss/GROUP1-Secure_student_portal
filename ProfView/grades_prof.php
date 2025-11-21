@@ -1,5 +1,6 @@
 <?php
 include('../includes/auth_session.php');
+include("../includes/auth_teacher.php");
 include('../config/db_connect.php');
 
 // Ensure only teachers can access

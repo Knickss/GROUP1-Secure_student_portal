@@ -1,6 +1,7 @@
 <?php
 // ====================== SECURITY & CONNECTION ======================
 include("../includes/auth_session.php");   // prevents access without login
+include("../includes/auth_student.php");
 include("../config/db_connect.php");       // database connection
 
 $user_id = $_SESSION['user_id'];

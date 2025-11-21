@@ -1,6 +1,7 @@
 <?php
-include('../config/db_connect.php');
-include('../includes/auth_session.php'); // shared auth file
+include("../includes/auth_session.php");
+include("../includes/auth_teacher.php");
+include("../config/db_connect.php");
 
 // Ensure only teachers can access
 if ($_SESSION['role'] !== 'teacher') {
