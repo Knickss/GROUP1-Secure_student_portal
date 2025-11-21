@@ -207,16 +207,7 @@ if ($tRes) {
     <main class="main-content">
         <!-- Topbar -->
         <header class="topbar">
-            <form class="search-container" method="get">
-                <input
-                    type="text"
-                    name="search"
-                    placeholder="Search courses..."
-                    class="search-bar"
-                    value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>"
-                >
-                <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            </form>
+            <div></div>
 
             <div class="profile-section">
                 <img src="images/ProfileImg.png" alt="Admin Avatar" class="avatar">
