@@ -1,43 +1,74 @@
 <?php
-// ====================== SECURITY & CONNECTION ======================
-include("../includes/auth_session.php");   // prevents access without login
+include("../includes/auth_session.php");
 include("../includes/auth_student.php");
-include("../config/db_connect.php");       // database connection
+include("../config/db_connect.php");
 
-$user_id = $_SESSION['user_id'];
-$full_name = $_SESSION['full_name'];
+$user_id   = $_SESSION['user_id'];
+$full_name = $_SESSION['full_name'] ?? 'Student';
 
-// ====================== FETCH DASHBOARD DATA ======================
-
-// Total enrolled subjects
-$stmt = $conn->prepare("SELECT COUNT(*) AS total_subjects FROM enrollments WHERE student_id = ?");
+/* ===================== FETCH PROFILE PIC ===================== */
+$stmt = $conn->prepare("SELECT profile_pic FROM users WHERE user_id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
-$total_subjects = $stmt->get_result()->fetch_assoc()['total_subjects'] ?? 0;
+$stmt->bind_result($profile_pic);
+$stmt->fetch();
 $stmt->close();
 
-// Current GWA (if grades exist)
+$avatar = !empty($profile_pic)
+    ? "../uploads/" . htmlspecialchars($profile_pic)
+    : "images/ProfilePic.png";
+
+/* ===================== TOTAL SUBJECTS ===================== */
+$stmt = $conn->prepare("SELECT COUNT(*) FROM enrollments WHERE student_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($total_subjects);
+$stmt->fetch();
+$stmt->close();
+
+/* ===================== CURRENT GWA ===================== */
 $stmt = $conn->prepare("
-  SELECT 
-    ROUND(SUM(g.grade * c.units) / SUM(c.units), 2) AS gwa
+  SELECT ROUND(SUM(g.grade * c.units) / SUM(c.units), 2)
   FROM grades g
   JOIN courses c ON g.course_id = c.course_id
   WHERE g.student_id = ? AND g.grade IS NOT NULL
 ");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
-$result = $stmt->get_result()->fetch_assoc();
-$gwa = $result['gwa'] ?? "N/A";
+$stmt->bind_result($gwa);
+$stmt->fetch();
 $stmt->close();
 
-// Recent announcements (limit 2–3)
+$gwa = $gwa ?? "N/A";
+
+/* ===================== RECENT ANNOUNCEMENTS =====================
+   Same logic as announcements_st.php:
+   - all
+   - students
+   - class announcements where student is enrolled
+=============================================================== */
 $stmt = $conn->prepare("
-  SELECT title, content, DATE_FORMAT(date_posted, '%b %e, %Y') AS formatted_date
-  FROM announcements
-  WHERE audience IN ('all','student','class')
-  ORDER BY date_posted DESC
+  SELECT 
+    a.title,
+    a.content,
+    a.date_posted,
+    a.audience,
+    c.course_code
+  FROM announcements a
+  LEFT JOIN courses c ON c.course_id = a.course_id
+  WHERE 
+      a.audience = 'all'
+      OR a.audience = 'students'
+      OR (
+            a.audience = 'class'
+            AND a.course_id IN (
+                SELECT course_id FROM enrollments WHERE student_id = ?
+            )
+         )
+  ORDER BY a.date_posted DESC
   LIMIT 3
 ");
+$stmt->bind_param("i", $user_id);
 $stmt->execute();
 $announcements = $stmt->get_result();
 $stmt->close();
@@ -50,86 +81,100 @@ $stmt->close();
   <link rel="stylesheet" href="CSS/format.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
+
 <body>
-  <div class="portal-layout">
+<div class="portal-layout">
 
-    <!-- Sidebar -->
-    <?php include('sidebar_st.php'); ?>
+  <!-- SIDEBAR -->
+  <?php include('sidebar_st.php'); ?>
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <header class="topbar">
-        <div class="search-container">
-          <input type="text" placeholder="Search..." class="search-bar">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <!-- CLEAN TOPBAR -->
+    <header class="topbar">
+      <div></div>
+      <div class="profile-section">
+        <img src="<?= $avatar ?>" class="avatar">
+        <span class="profile-name"><?= htmlspecialchars($full_name) ?></span>
+      </div>
+    </header>
+
+    <!-- BODY -->
+    <section class="dashboard-body">
+
+      <h1>Welcome, <?= htmlspecialchars($full_name) ?>!</h1>
+      <p class="semester-text">Current Semester: 1st Semester, A.Y. 2025–2026</p>
+
+      <!-- SUMMARY CARDS -->
+      <div class="summary-container">
+
+        <div class="summary-card">
+          <h4><i class="fa-solid fa-chart-line"></i> Current GWA</h4>
+          <p><?= htmlspecialchars($gwa) ?></p>
         </div>
 
-        <div class="profile-section">
-          <img src="images/ProfilePic.png" alt="User Avatar" class="avatar">
-          <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
-          <i class="fa-solid fa-chevron-down dropdown-icon"></i>
+        <div class="summary-card">
+          <h4><i class="fa-solid fa-book"></i> Total Enrolled Subjects</h4>
+          <p><?= htmlspecialchars($total_subjects) ?></p>
         </div>
-      </header>
 
-      <!-- Dashboard Body -->
-      <section class="dashboard-body">
-        <h1>Welcome, <?php echo htmlspecialchars($full_name); ?>!</h1>
-        <p class="semester-text">Current Semester: 1st Semester, A.Y. 2025–2026</p>
+        <div class="summary-card">
+          <h4><i class="fa-solid fa-bullhorn"></i> Recent Announcements</h4>
+          <p>
+            <?= ($announcements->num_rows > 0)
+                ? $announcements->num_rows . " new update" . ($announcements->num_rows > 1 ? "s" : "")
+                : "No updates"; ?>
+          </p>
+        </div>
 
-        <!-- Summary Cards -->
-        <div class="summary-container">
-
-          <div class="summary-card">
-            <h4><i class="fa-solid fa-chart-line"></i> Current GWA</h4>
-            <p><?php echo $gwa; ?></p>
+        <!-- QUICK LINKS -->
+        <div class="summary-card quick-links-horizontal">
+          <i class="fa-solid fa-link quick-icon"></i>
+          <div class="quick-buttons">
+            <a href="courses_st.php" class="quick-btn">View Courses</a>
+            <a href="grades_st.php" class="quick-btn">View Grades</a>
           </div>
+        </div>
 
-          <div class="summary-card">
-            <h4><i class="fa-solid fa-book"></i> Total Enrolled Subjects</h4>
-            <p><?php echo $total_subjects; ?></p>
-          </div>
+      </div>
 
-          <div class="summary-card">
-            <h4><i class="fa-solid fa-bullhorn"></i> Recent Announcements</h4>
-            <p>
-              <?php
-              $announce_count = $announcements->num_rows;
-              echo ($announce_count > 0) ? "$announce_count new update" . ($announce_count > 1 ? "s" : "") : "No updates";
-              ?>
-            </p>
-          </div>
+      <!-- RECENT ANNOUNCEMENTS SECTION -->
+      <section class="announcements-section">
+        <h2><i class="fa-solid fa-bullhorn"></i> Recent Announcements</h2>
 
-          <!-- Quick Links -->
-          <div class="summary-card quick-links-horizontal">
-            <i class="fa-solid fa-link quick-icon"></i>
-            <div class="quick-buttons">
-              <a href="courses_st.php" class="quick-btn">View Courses</a>
-              <a href="grades_st.php" class="quick-btn">View Grades</a>
+        <?php if ($announcements->num_rows > 0): ?>
+          <?php while ($a = $announcements->fetch_assoc()): ?>
+
+            <?php
+              if ($a['audience'] === 'all')         $target = "All Users";
+              elseif ($a['audience'] === 'students') $target = "All Students";
+              elseif ($a['audience'] === 'class')    $target = $a['course_code'] ?? "Your Class";
+              else                                   $target = "Unknown";
+            ?>
+
+            <div class="announcement-card">
+              <h3><?= htmlspecialchars($a['title']) ?></h3>
+
+              <p class="announce-date">
+                Posted: <?= date("M d, Y", strtotime($a['date_posted'])) ?>
+                • Target: <?= htmlspecialchars($target) ?>
+              </p>
+
+              <p class="announce-preview">
+                <?= nl2br(htmlspecialchars(mb_strimwidth($a['content'], 0, 180, "..."))) ?>
+              </p>
             </div>
-          </div>
 
-        </div>
+          <?php endwhile; ?>
+        <?php else: ?>
+          <p style="text-align:center; font-style:italic;">No announcements available.</p>
+        <?php endif; ?>
 
-        <!-- Recent Announcements Section -->
-        <div class="announcements-section">
-          <h2><i class="fa-solid fa-bullhorn"></i> Recent Announcements</h2>
-
-          <?php if ($announcements->num_rows > 0): ?>
-            <?php while ($row = $announcements->fetch_assoc()): ?>
-              <div class="announcement-card">
-                <h3><?php echo htmlspecialchars($row['title']); ?></h3>
-                <p class="announce-date">Posted: <?php echo $row['formatted_date']; ?></p>
-                <p class="announce-preview">
-                  <?php echo nl2br(htmlspecialchars(substr($row['content'], 0, 200))); ?>...
-                </p>
-              </div>
-            <?php endwhile; ?>
-          <?php else: ?>
-            <p>No announcements available.</p>
-          <?php endif; ?>
-        </div>
       </section>
-    </main>
-  </div>
+
+    </section>
+  </main>
+</div>
 </body>
 </html>
