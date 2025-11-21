@@ -2,6 +2,7 @@
 include("../includes/auth_session.php");
 include("../includes/auth_admin.php");
 include("../config/db_connect.php");
+include("../includes/logging.php"); // <-- ADDED
 
 // ================== FETCH LOGGED-IN USER HEADER INFO ==================
 $user_id   = $_SESSION['user_id'];
@@ -38,6 +39,7 @@ function build_query(array $overrides = []): string {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
+    /* ========================= SAVE COURSE ========================= */
     if ($action === 'save_course') {
         $course_id     = (int)($_POST['course_id'] ?? 0);
         $code          = trim($_POST['course_code'] ?? '');
@@ -50,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $teacher_id    = ($_POST['teacher_id'] !== '') ? (int)$_POST['teacher_id'] : null;
 
         if ($course_id > 0) {
-            // UPDATE existing course
+            // ================= UPDATE EXISTING COURSE =================
             $stmt = $conn->prepare("
                 UPDATE courses
                 SET course_code = ?, course_name = ?, units = ?, semester = ?,
@@ -69,8 +71,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $teacher_id,
                 $course_id
             );
+            $stmt->execute();
+            $stmt->close();
+
+            /* LOG UPDATE COURSE */
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Updated Course",
+                "Updated course {$code} ({$name}), Units={$units}, Semester={$semester}, Day={$schedule_day}, Time={$schedule_time}, TeacherID={$teacher_id}.",
+                "success"
+            );
+
         } else {
-            // INSERT new course
+            // ================= INSERT NEW COURSE =================
             $stmt = $conn->prepare("
                 INSERT INTO courses
                     (course_code, course_name, units, semester,
@@ -88,21 +102,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $description,
                 $teacher_id
             );
-        }
+            $stmt->execute();
+            $stmt->close();
 
-        $stmt->execute();
-        $stmt->close();
+            /* LOG ADD NEW COURSE */
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Added Course",
+                "Created new course {$code} ({$name}), Units={$units}, Semester={$semester}, Day={$schedule_day}, Time={$schedule_time}, TeacherID={$teacher_id}.",
+                "success"
+            );
+        }
 
         header("Location: courses_admin.php" . build_query(['page' => null]));
         exit;
 
-    } elseif ($action === 'delete_course') {
+    }
+
+    /* ========================= DELETE COURSE ========================= */
+    elseif ($action === 'delete_course') {
         $course_id = (int)($_POST['course_id'] ?? 0);
+
         if ($course_id > 0) {
+            $stmt = $conn->prepare("SELECT course_code, course_name FROM courses WHERE course_id = ?");
+            $stmt->bind_param("i", $course_id);
+            $stmt->execute();
+            $stmt->bind_result($ccode, $cname);
+            $stmt->fetch();
+            $stmt->close();
+
             $stmt = $conn->prepare("DELETE FROM courses WHERE course_id = ?");
             $stmt->bind_param("i", $course_id);
             $stmt->execute();
             $stmt->close();
+
+            /* LOG DELETE COURSE */
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Deleted Course",
+                "Deleted course {$ccode} ({$cname}), course_id={$course_id}.",
+                "success"
+            );
         }
 
         header("Location: courses_admin.php" . build_query(['page' => null]));
@@ -224,7 +266,7 @@ if ($tRes) {
     <main class="main-content">
         <!-- Topbar -->
         <header class="topbar">
-            <!-- invisible left container so layout matches other pages -->
+            <!-- invisible left container -->
             <div class="search-container" style="visibility:hidden;"></div>
 
             <div class="profile-section">
@@ -238,7 +280,7 @@ if ($tRes) {
             <h1>Courses Management</h1>
             <p class="semester-text">Maintain the school's master list of subjects.</p>
 
-            <!-- TOOLBAR: teacher filter + add button -->
+            <!-- TOOLBAR -->
             <div class="course-toolbar">
                 <form method="get" class="course-filter-form">
                     <select name="teacher_filter">
@@ -256,8 +298,7 @@ if ($tRes) {
                     <input type="hidden" name="search" value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>">
 
                     <button type="submit">
-                        <i class="fa-solid fa-filter"></i>
-                        Filter
+                        <i class="fa-solid fa-filter"></i> Filter
                     </button>
                 </form>
 
@@ -293,11 +334,9 @@ if ($tRes) {
                                 <td><?php echo htmlspecialchars($c['course_name']); ?></td>
                                 <td><?php echo (int)$c['units']; ?></td>
                                 <td>
-                                    <?php
-                                        echo $c['teacher_name']
-                                            ? htmlspecialchars($c['teacher_name'])
-                                            : '—';
-                                    ?>
+                                    <?php echo $c['teacher_name']
+                                        ? htmlspecialchars($c['teacher_name'])
+                                        : '—'; ?>
                                 </td>
                                 <td>
                                     <button
@@ -408,9 +447,7 @@ if ($tRes) {
 <!-- DELETE CONFIRMATION MODAL -->
 <div id="courseDeleteModal" class="modal">
     <div class="logout-modal">
-        <div class="logout-icon">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-        </div>
+        <div class="logout-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
         <h3>Delete Course?</h3>
         <p id="deleteCourseText"></p>
 
@@ -434,9 +471,7 @@ if ($tRes) {
         <span class="<?php echo ($page <= 1) ? 'disabled' : ''; ?>">
             <?php if ($page > 1): ?>
                 <a href="<?php echo build_query(['page' => $prev]); ?>">&laquo;</a>
-            <?php else: ?>
-                &laquo;
-            <?php endif; ?>
+            <?php else: ?>&laquo;<?php endif; ?>
         </span>
 
         <?php for ($i = 1; $i <= $totalPages; $i++): ?>
@@ -450,12 +485,11 @@ if ($tRes) {
         <span class="<?php echo ($page >= $totalPages) ? 'disabled' : ''; ?>">
             <?php if ($page < $totalPages): ?>
                 <a href="<?php echo build_query(['page' => $next]); ?>">&raquo;</a>
-            <?php else: ?>
-                &raquo;
-            <?php endif; ?>
+            <?php else: ?>&raquo;<?php endif; ?>
         </span>
     </div>
 </div>
+
 
 <script>
 // ====== ELEMENT HOOKS ======
