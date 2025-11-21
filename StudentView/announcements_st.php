@@ -3,10 +3,22 @@ include("../includes/auth_session.php");
 include("../includes/auth_student.php");
 include("../config/db_connect.php");
 
-$user_id = $_SESSION['user_id'];
-$full_name = $_SESSION['full_name'];
+$user_id   = $_SESSION['user_id'];
+$full_name = $_SESSION['full_name'] ?? 'Student';
 
-// Fetch announcements (newest first)
+/* ===================== FETCH PROFILE PIC ===================== */
+$stmt = $conn->prepare("SELECT profile_pic FROM users WHERE user_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($profile_pic);
+$stmt->fetch();
+$stmt->close();
+
+$avatar = !empty($profile_pic)
+    ? "../uploads/" . htmlspecialchars($profile_pic)
+    : "images/ProfilePic.png";
+
+/* ===================== FETCH ANNOUNCEMENTS ===================== */
 $stmt = $conn->prepare("
   SELECT 
     a.announcement_id,
@@ -14,12 +26,21 @@ $stmt = $conn->prepare("
     a.content,
     a.date_posted,
     a.audience,
-    u.full_name AS author_name
+    a.course_id,
+    u.full_name AS author_name,
+    c.course_code
   FROM announcements a
   LEFT JOIN users u ON a.author_id = u.user_id
-  WHERE a.audience IN ('all', 'student', 'class')
+  LEFT JOIN courses c ON c.course_id = a.course_id
+  WHERE 
+      a.audience = 'all'
+      OR a.audience = 'students'
+      OR (a.audience = 'class' AND a.course_id IN (
+            SELECT course_id FROM enrollments WHERE student_id = ?
+         ))
   ORDER BY a.date_posted DESC
 ");
+$stmt->bind_param("i", $user_id);
 $stmt->execute();
 $announcements = $stmt->get_result();
 $stmt->close();
@@ -31,91 +52,119 @@ $stmt->close();
   <title>Escolink Centra | Announcements</title>
   <link rel="stylesheet" href="CSS/format.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    /* ----- MATCH TEACHER/ADMIN MODAL STYLE ----- */
+    .modal-content {
+      max-width: 550px;
+      padding: 25px;
+      border-radius: 12px;
+      background: white;
+      position: relative;
+      text-align: left;
+    }
+
+    .modal-content h2 {
+      color: #b21e8f;      
+      font-size: 22px;
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    .modal-content p {
+      text-align: left;
+      font-size: 15px;
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+
+    .modal .close {
+      color: #b21e8f;
+      font-size: 22px;
+      position: absolute;
+      top: 12px;
+      right: 15px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
 </head>
+
 <body>
-  <div class="portal-layout">
+<div class="portal-layout">
 
-    <!-- Sidebar -->
-    <?php include('sidebar_st.php'); ?>
+  <?php include('sidebar_st.php'); ?>
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <header class="topbar">
-        <div class="search-container">
-          <input type="text" placeholder="Search announcements..." class="search-bar" id="announceSearch">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        </div>
+  <main class="main-content">
 
-        <div class="profile-section">
-          <img src="images/ProfilePic.png" alt="User Avatar" class="avatar">
-          <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
-          <i class="fa-solid fa-chevron-down dropdown-icon"></i>
-        </div>
-      </header>
+    <header class="topbar">
+      <div></div>
+      <div class="profile-section">
+        <img src="<?= $avatar ?>" class="avatar">
+        <span class="profile-name"><?= htmlspecialchars($full_name) ?></span>
+      </div>
+    </header>
 
-      <!-- Announcements Section -->
-      <section class="dashboard-body">
-        <h1>Announcements</h1>
-        <p class="semester-text">Stay updated with the latest campus news and reminders</p>
+    <section class="dashboard-body">
+      <h1>Announcements</h1>
+      <p class="semester-text">Stay updated with the latest campus news and reminders</p>
 
-        <div class="announcement-grid">
-          <?php if ($announcements->num_rows > 0): ?>
-            <?php while ($row = $announcements->fetch_assoc()): ?>
-              <div class="announcement-card">
-                <h3><?php echo htmlspecialchars($row['title']); ?></h3>
-                <p class="announce-date">
-                  Posted by <?php echo htmlspecialchars($row['author_name'] ?? 'System'); ?> • 
-                  <?php echo date('M d, Y', strtotime($row['date_posted'])); ?>
-                </p>
-                <p class="announce-preview">
-                  <?php
-                    $preview = mb_strimwidth(strip_tags($row['content']), 0, 150, "...");
-                    echo htmlspecialchars($preview);
-                  ?>
-                </p>
-                <button class="details-btn" onclick="openModal('modal<?php echo $row['announcement_id']; ?>')">View More</button>
-              </div>
+      <div class="announcement-grid">
 
-              <!-- Modal for each announcement -->
-              <div id="modal<?php echo $row['announcement_id']; ?>" class="modal">
-                <div class="modal-content">
-                  <span class="close" onclick="closeModal('modal<?php echo $row['announcement_id']; ?>')">&times;</span>
-                  <h2><?php echo htmlspecialchars($row['title']); ?></h2>
-                  <p><?php echo nl2br(htmlspecialchars($row['content'])); ?></p>
-                </div>
-              </div>
-            <?php endwhile; ?>
-          <?php else: ?>
-            <p style="text-align:center; color:#555; font-style:italic;">No announcements available.</p>
-          <?php endif; ?>
-        </div>
-      </section>
-    </main>
-  </div>
+        <?php while ($a = $announcements->fetch_assoc()): ?>
 
-  <script>
-    // Modal control
-    function openModal(id) {
-      document.getElementById(id).style.display = "flex";
-    }
-    function closeModal(id) {
-      document.getElementById(id).style.display = "none";
-    }
-    window.onclick = function(event) {
-      const modals = document.querySelectorAll(".modal");
-      modals.forEach(m => {
-        if (event.target === m) m.style.display = "none";
-      });
-    };
+          <?php
+            if ($a['audience'] === 'all')         $target = "All Users";
+            elseif ($a['audience'] === 'students') $target = "All Students";
+            elseif ($a['audience'] === 'class')    $target = $a['course_code'] ?? "Your Class";
+            else                                   $target = "Unknown";
+          ?>
 
-    // Search filter
-    document.getElementById("announceSearch").addEventListener("keyup", function() {
-      const query = this.value.toLowerCase();
-      document.querySelectorAll(".announcement-card").forEach(card => {
-        const text = card.textContent.toLowerCase();
-        card.style.display = text.includes(query) ? "block" : "none";
-      });
-    });
-  </script>
+          <div class="announcement-card">
+            <h3><?= htmlspecialchars($a['title']) ?></h3>
+
+            <p class="announce-date">
+              Posted by <?= htmlspecialchars($a['author_name'] ?? "System") ?>
+              • <?= date("M d, Y", strtotime($a['date_posted'])) ?>
+              • Target: <?= htmlspecialchars($target) ?>
+            </p>
+
+            <p class="announce-preview">
+              <?= htmlspecialchars(mb_strimwidth($a['content'], 0, 160, "...")) ?>
+            </p>
+
+            <button class="details-btn" onclick="openModal('m<?= $a['announcement_id'] ?>')">
+              <i class="fa-solid fa-eye"></i> View Details
+            </button>
+          </div>
+
+          <!-- MODAL -->
+          <div id="m<?= $a['announcement_id'] ?>" class="modal">
+            <div class="modal-content">
+              <span class="close" onclick="closeModal('m<?= $a['announcement_id'] ?>')">&times;</span>
+              <h2><?= htmlspecialchars($a['title']) ?></h2>
+              <p><?= nl2br(htmlspecialchars($a['content'])) ?></p>
+            </div>
+          </div>
+
+        <?php endwhile; ?>
+
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<script>
+function openModal(id){ document.getElementById(id).style.display = "flex"; }
+function closeModal(id){ document.getElementById(id).style.display = "none"; }
+
+window.onclick = function(e){
+  document.querySelectorAll(".modal").forEach(m => {
+    if (e.target === m) m.style.display = "none";
+  });
+};
+</script>
+
 </body>
 </html>
