@@ -2,6 +2,7 @@
 include("../includes/auth_session.php");
 include("../includes/auth_admin.php");
 include("../config/db_connect.php");
+include("../includes/logging.php"); // <-- ADDED
 
 $user_id   = $_SESSION['user_id'];
 $full_name = $_SESSION['full_name'] ?? "Administrator";
@@ -19,40 +20,56 @@ $avatar = $profile_pic !== ''
     ? "../uploads/" . htmlspecialchars((string)$profile_pic)
     : "images/ProfileImg.png";
 
-/* ---------------- CREATE ANNOUNCEMENT (ADMIN) ---------------- */
+/* =========================================================
+   CREATE ANNOUNCEMENT (ADMIN)
+   LOGGING ADDED
+========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create') {
     $title    = trim($_POST['title'] ?? '');
     $content  = trim($_POST['content'] ?? '');
     $audience = trim($_POST['audience'] ?? '');
 
-    // Admin-created announcements should NOT be 'class'
     $validAudiences = ['all', 'students', 'professors'];
 
     if ($title !== '' && $content !== '' && in_array($audience, $validAudiences, true)) {
+
         $stmt = $conn->prepare("
             INSERT INTO announcements (title, content, author_id, audience, date_posted)
             VALUES (?, ?, ?, ?, NOW())
         ");
         $stmt->bind_param("ssis", $title, $content, $user_id, $audience);
         $stmt->execute();
+        $newId = $stmt->insert_id;
         $stmt->close();
+
+        /* ---- LOG CREATE ---- */
+        log_activity(
+            $conn,
+            (int)$user_id,
+            "Created Announcement",
+            "Created announcement '{$title}' (ID {$newId}), audience='{$audience}'.",
+            "success"
+        );
     }
 
     header("Location: announcements_admin.php");
     exit;
 }
 
-/* ---------------- EDIT ANY ANNOUNCEMENT (ADMIN MODERATION) ---------------- */
+/* =========================================================
+   EDIT ANNOUNCEMENT (ADMIN)
+   LOGGING ADDED
+========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit') {
     $id       = (int)($_POST['announcement_id'] ?? 0);
     $title    = trim($_POST['title'] ?? '');
     $content  = trim($_POST['content'] ?? '');
     $audience = trim($_POST['audience'] ?? '');
 
-    // For editing, allow 'class' too so admin can keep/convert teacher posts
     $validAudiences = ['all', 'students', 'professors', 'class'];
 
     if ($id > 0 && $title !== '' && $content !== '' && in_array($audience, $validAudiences, true)) {
+
         $stmt = $conn->prepare("
             UPDATE announcements
             SET title = ?, content = ?, audience = ?, date_posted = NOW()
@@ -61,21 +78,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit'
         $stmt->bind_param("sssi", $title, $content, $audience, $id);
         $stmt->execute();
         $stmt->close();
+
+        /* ---- LOG EDIT ---- */
+        log_activity(
+            $conn,
+            (int)$user_id,
+            "Edited Announcement",
+            "Edited announcement '{$title}' (ID {$id}), new audience='{$audience}'.",
+            "success"
+        );
     }
 
     header("Location: announcements_admin.php");
     exit;
 }
 
-/* ---------------- DELETE ANY ANNOUNCEMENT (ADMIN MODERATION) ---------------- */
+/* =========================================================
+   DELETE ANNOUNCEMENT (ADMIN)
+   LOGGING ADDED
+========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
     $id = (int)($_POST['announcement_id'] ?? 0);
 
     if ($id > 0) {
+
+        /* Fetch title for logging clarity */
+        $stmt = $conn->prepare("SELECT title FROM announcements WHERE announcement_id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $stmt->bind_result($delTitle);
+        $stmt->fetch();
+        $stmt->close();
+
         $stmt = $conn->prepare("DELETE FROM announcements WHERE announcement_id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
         $stmt->close();
+
+        /* ---- LOG DELETE ---- */
+        log_activity(
+            $conn,
+            (int)$user_id,
+            "Deleted Announcement",
+            "Deleted announcement '{$delTitle}' (ID {$id}).",
+            "success"
+        );
     }
 
     header("Location: announcements_admin.php");
@@ -84,9 +131,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 
 /* ---------------------------------------------------------
    FETCH ALL ANNOUNCEMENTS (ADMIN SEES EVERYTHING)
-   - Admin announcements (audience: all/students/professors)
-   - Teacher course announcements (audience: class, with course_id)
-   - Old seed announcements (author_id may be NULL)
 --------------------------------------------------------- */
 $stmt = $conn->prepare("
   SELECT 
