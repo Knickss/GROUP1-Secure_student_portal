@@ -3,56 +3,91 @@ include("../includes/auth_session.php");
 include("../includes/auth_teacher.php");
 include("../config/db_connect.php");
 
-$user_id = $_SESSION['user_id'];
-$full_name = $_SESSION['full_name'];
+$user_id   = $_SESSION['user_id'];
+$full_name = $_SESSION['full_name'] ?? 'Teacher';
 
-// ===== Fetch total assigned classes =====
-$class_query = $conn->prepare("SELECT COUNT(*) AS total_classes FROM courses WHERE teacher_id = ?");
-$class_query->bind_param("i", $user_id);
-$class_query->execute();
-$class_result = $class_query->get_result()->fetch_assoc();
-$total_classes = $class_result['total_classes'] ?? 0;
-$class_query->close();
+/* ---------------- FETCH PROFILE PIC ---------------- */
+$stmt = $conn->prepare("SELECT profile_pic FROM users WHERE user_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($profile_pic);
+$stmt->fetch();
+$stmt->close();
 
-// ===== Fetch total unique students =====
-$student_query = $conn->prepare("
+$avatar = !empty($profile_pic)
+    ? "../uploads/" . htmlspecialchars($profile_pic)
+    : "images/ProfileImg.png";
+
+
+/* ---------------- TOTAL ASSIGNED CLASSES ---------------- */
+$sql = "SELECT COUNT(*) AS total_classes FROM courses WHERE teacher_id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$total_classes = $stmt->get_result()->fetch_assoc()['total_classes'] ?? 0;
+$stmt->close();
+
+/* ---------------- TOTAL UNIQUE STUDENTS ---------------- */
+$sql = "
   SELECT COUNT(DISTINCT e.student_id) AS total_students
   FROM enrollments e
   JOIN courses c ON e.course_id = c.course_id
   WHERE c.teacher_id = ?
-");
-$student_query->bind_param("i", $user_id);
-$student_query->execute();
-$student_result = $student_query->get_result()->fetch_assoc();
-$total_students = $student_result['total_students'] ?? 0;
-$student_query->close();
+";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$total_students = $stmt->get_result()->fetch_assoc()['total_students'] ?? 0;
+$stmt->close();
 
-// ===== Fetch recent announcements (own + global) =====
-$announcements_query = $conn->prepare("
-  SELECT a.title, a.content, a.date_posted, u.full_name AS author_name
+/* ---------------- LATEST ANNOUNCEMENT (for card) ---------------- */
+$sql = "
+  SELECT a.title
   FROM announcements a
-  LEFT JOIN users u ON a.author_id = u.user_id
-  WHERE a.author_id = ? OR a.audience = 'all'
+  LEFT JOIN courses c ON a.course_id = c.course_id
+  WHERE 
+      a.audience = 'all'
+      OR a.audience = 'teachers'
+      OR (a.audience = 'class' AND c.teacher_id = ?)
+      OR a.author_id = ?
   ORDER BY a.date_posted DESC
-  LIMIT 2
-");
-$announcements_query->bind_param("i", $user_id);
-$announcements_query->execute();
-$announcements_result = $announcements_query->get_result();
-
-// ===== Fetch latest announcement (for summary card) =====
-$latest_query = $conn->prepare("
-  SELECT title, content
-  FROM announcements
-  WHERE author_id = ? OR audience = 'all'
-  ORDER BY date_posted DESC
   LIMIT 1
-");
-$latest_query->bind_param("i", $user_id);
-$latest_query->execute();
-$latest = $latest_query->get_result()->fetch_assoc();
-$latest_announcement = $latest['title'] ?? 'No announcements yet.';
-$latest_query->close();
+";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("ii", $user_id, $user_id);
+$stmt->execute();
+$row = $stmt->get_result()->fetch_assoc();
+$latest_announcement = $row['title'] ?? "No announcements yet.";
+$stmt->close();
+
+/* ---------------- RECENT ANNOUNCEMENTS (same logic as announcements_prof.php) ---------------- */
+$sql = "
+  SELECT 
+      a.announcement_id,
+      a.title,
+      a.content,
+      a.date_posted,
+      a.course_id,
+      a.audience,
+      c.course_code,
+      u.full_name AS author_name
+  FROM announcements a
+  LEFT JOIN courses c ON c.course_id = a.course_id
+  LEFT JOIN users u ON u.user_id = a.author_id
+  WHERE 
+      a.audience = 'all'
+      OR a.audience = 'teachers'
+      OR (a.audience = 'class' AND c.teacher_id = ?)
+      OR a.author_id = ?
+  ORDER BY a.date_posted DESC
+  LIMIT 4
+";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("ii", $user_id, $user_id);
+$stmt->execute();
+$announcements = $stmt->get_result();
+$stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -63,82 +98,90 @@ $latest_query->close();
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-  <div class="portal-layout">
+<div class="portal-layout">
 
-    <!-- Sidebar -->
-    <?php include('sidebar_prof.php'); ?>
+  <?php include('sidebar_prof.php'); ?>
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <header class="topbar">
-        <div class="search-container">
-          <input type="text" placeholder="Search..." class="search-bar">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+  <main class="main-content">
+
+    <!-- CLEAN TOPBAR -->
+    <header class="topbar">
+      <div></div>
+      <div class="profile-section">
+        <img src="<?= $avatar ?>" class="avatar">
+        <span class="profile-name"><?= htmlspecialchars($full_name) ?></span>
+      </div>
+    </header>
+
+    <section class="dashboard-body">
+
+      <h1>Welcome back, <?= htmlspecialchars($full_name) ?>!</h1>
+      <p class="semester-text">Teaching Overview – 1st Semester, A.Y. 2025–2026</p>
+
+      <!-- SUMMARY CARDS -->
+      <div class="summary-container">
+
+        <div class="summary-card">
+          <h4><i class="fa-solid fa-book"></i> Total Assigned Classes</h4>
+          <p><?= $total_classes ?></p>
         </div>
 
-        <div class="profile-section">
-          <img src="images/ProfileImg.png" alt="User Avatar" class="avatar">
-          <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
-          <i class="fa-solid fa-chevron-down dropdown-icon"></i>
+        <div class="summary-card">
+          <h4><i class="fa-solid fa-user-graduate"></i> Total Students</h4>
+          <p><?= $total_students ?></p>
         </div>
-      </header>
 
-      <section class="dashboard-body">
-        <h1>Welcome back, <?php echo htmlspecialchars($full_name); ?>!</h1>
-        <p class="semester-text">Teaching Overview – 1st Semester, A.Y. 2025–2026</p>
+        <div class="summary-card">
+          <h4><i class="fa-solid fa-bullhorn"></i> Latest Announcement</h4>
+          <p><?= htmlspecialchars($latest_announcement) ?></p>
+        </div>
 
-        <!-- Summary Cards -->
-        <div class="summary-container">
-
-          <!-- Total Classes -->
-          <div class="summary-card">
-            <h4><i class="fa-solid fa-book"></i> Total Assigned Classes</h4>
-            <p><?php echo $total_classes; ?></p>
+        <div class="summary-card quick-actions">
+          <h4><i class="fa-solid fa-bolt"></i></h4>
+          <div class="quick-buttons">
+            <a href="grades_prof.php" class="quick-btn">Manage Grades</a>
+            <a href="announcements_prof.php" class="quick-btn">Post Announcement</a>
           </div>
+        </div>
 
-          <!-- Total Students -->
-          <div class="summary-card">
-            <h4><i class="fa-solid fa-user-graduate"></i> Total Students</h4>
-            <p><?php echo $total_students; ?></p>
-          </div>
+      </div>
 
-          <!-- Latest Announcement -->
-          <div class="summary-card">
-            <h4><i class="fa-solid fa-bullhorn"></i> Latest Announcement</h4>
-            <p><?php echo htmlspecialchars($latest_announcement); ?></p>
-          </div>
+      <!-- RECENT ANNOUNCEMENTS -->
+      <section class="announcements-section">
+        <h2><i class="fa-solid fa-bullhorn"></i> Recent Announcements</h2>
 
-          <!-- Quick Actions -->
-          <div class="summary-card quick-actions">
-            <h4><i class="fa-solid fa-bolt"></i></h4>
-            <div class="quick-buttons">
-              <a href="grades_prof.php" class="quick-btn">Manage Grades</a>
-              <a href="announcements_prof.php" class="quick-btn">Post Announcement</a>
+        <?php if ($announcements->num_rows > 0): ?>
+          <?php while ($a = $announcements->fetch_assoc()): ?>
+
+            <?php
+              if ($a['audience'] === 'all')          $target = "All Users";
+              elseif ($a['audience'] === 'teachers') $target = "All Teachers";
+              elseif ($a['audience'] === 'class')    $target = $a['course_code'] ?: "Class";
+              else                                   $target = "Unknown";
+            ?>
+
+            <div class="announcement-card">
+              <h3><?= htmlspecialchars($a['title']) ?></h3>
+
+              <p class="announce-date">
+                Posted by <?= htmlspecialchars($a['author_name'] ?? 'Unknown') ?> |
+                <?= date("F j, Y", strtotime($a['date_posted'])) ?> |
+                Target: <?= htmlspecialchars($target) ?>
+              </p>
+
+              <p class="announce-preview"><?= nl2br(htmlspecialchars($a['content'])) ?></p>
             </div>
-          </div>
-        </div>
 
-        <!-- Recent Announcements Section -->
-        <section class="announcements-section">
-          <h2><i class="fa-solid fa-bullhorn"></i> Recent Announcements</h2>
-          <?php if ($announcements_result->num_rows > 0): ?>
-            <?php while ($row = $announcements_result->fetch_assoc()): ?>
-              <div class="announcement-card">
-                <h3><?php echo htmlspecialchars($row['title']); ?></h3>
-                <p class="announce-date">
-                  Posted by <?php echo htmlspecialchars($row['author_name'] ?? 'Unknown'); ?> • 
-                  <?php echo date("F j, Y", strtotime($row['date_posted'])); ?>
-                </p>
+          <?php endwhile; ?>
+        <?php else: ?>
+          <p style="text-align:center; font-style:italic;">No announcements available.</p>
+        <?php endif; ?>
 
-                <p class="announce-preview"><?php echo htmlspecialchars(substr($row['content'], 0, 150)); ?>...</p>
-              </div>
-            <?php endwhile; ?>
-          <?php else: ?>
-            <p>No announcements available.</p>
-          <?php endif; ?>
-        </section>
       </section>
-    </main>
-  </div>
+
+    </section>
+  </main>
+
+</div>
 </body>
 </html>
