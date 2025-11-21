@@ -4,7 +4,21 @@ include("../includes/auth_teacher.php");
 include("../config/db_connect.php");
 
 $user_id   = $_SESSION['user_id'];
-$full_name = $_SESSION['full_name'];
+$full_name = $_SESSION['full_name'] ?? "Professor";
+
+/* ---------------------------------------------------------
+   FETCH PROFILE PICTURE
+--------------------------------------------------------- */
+$stmt = $conn->prepare("SELECT profile_pic FROM users WHERE user_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($profile_pic);
+$stmt->fetch();
+$stmt->close();
+
+$avatar = (!empty($profile_pic))
+    ? "../uploads/" . htmlspecialchars($profile_pic)
+    : "images/ProfileImg.png";
 
 /* ---------------------------------------------------------
    CREATE ANNOUNCEMENT
@@ -66,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 }
 
 /* ---------------------------------------------------------
-   GET COURSES HANDLED BY THIS TEACHER
+   FETCH TEACHER'S COURSES
 --------------------------------------------------------- */
 $courses = [];
 $stmt = $conn->prepare("SELECT course_id, course_code, course_name FROM courses WHERE teacher_id = ?");
@@ -77,12 +91,7 @@ while ($row = $res->fetch_assoc()) $courses[] = $row;
 $stmt->close();
 
 /* ---------------------------------------------------------
-   ANNOUNCEMENT VISIBILITY LOGIC
-   Teachers should see:
-   - audience = 'all'
-   - audience = 'teachers'
-   - audience = 'class' WHERE they teach the course
-   - their own announcements
+   ANNOUNCEMENTS VISIBLE TO TEACHER
 --------------------------------------------------------- */
 $stmt = $conn->prepare("
   SELECT 
@@ -90,8 +99,8 @@ $stmt = $conn->prepare("
       a.title,
       a.content,
       a.date_posted,
-      a.course_id,
       a.audience,
+      a.course_id,
       c.course_code,
       c.course_name,
       u.full_name AS author_name
@@ -125,14 +134,11 @@ $stmt->close();
 
     <main class="main-content">
 
-      <!-- Topbar -->
+      <!-- CLEAN TOPBAR -->
       <header class="topbar">
-        <div class="search-container">
-          <input type="text" id="searchInput" class="search-bar" placeholder="Search announcements...">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        </div>
+        <div></div>
         <div class="profile-section">
-          <img src="images/ProfileImg.png" class="avatar">
+          <img src="<?= $avatar ?>" class="avatar">
           <span class="profile-name"><?= htmlspecialchars($full_name) ?></span>
         </div>
       </header>
@@ -141,7 +147,7 @@ $stmt->close();
         <h1>Announcements</h1>
         <p class="semester-text">Create, review, or manage your class announcements for students.</p>
 
-        <!-- CREATE FORM -->
+        <!-- ================= CREATE FORM ================= -->
         <div class="announcement-form">
           <h3><i class="fa-solid fa-bullhorn"></i> Create New Announcement</h3>
 
@@ -149,17 +155,17 @@ $stmt->close();
             <input type="hidden" name="action" value="create">
 
             <label>Title:</label>
-            <input type="text" name="title" placeholder="Enter announcement title..." required>
+            <input type="text" name="title" required>
 
             <label>Message:</label>
-            <textarea name="content" rows="5" placeholder="Write your announcement here..." required></textarea>
+            <textarea name="content" rows="5" required></textarea>
 
             <label>Select Course:</label>
             <select name="course_id" required>
               <option value="">-- Select a course --</option>
               <?php foreach ($courses as $c): ?>
-                <option value="<?= (int)$c['course_id'] ?>">
-                  <?= htmlspecialchars($c['course_code'] . ': ' . $c['course_name']) ?>
+                <option value="<?= $c['course_id'] ?>">
+                  <?= htmlspecialchars($c['course_code'] . ": " . $c['course_name']) ?>
                 </option>
               <?php endforeach; ?>
             </select>
@@ -168,24 +174,18 @@ $stmt->close();
           </form>
         </div>
 
-        <!-- ANNOUNCEMENT LIST -->
-        <section class="announcements-section" id="annList">
+        <!-- ================= LIST ================= -->
+        <section class="announcements-section">
           <h2><i class="fa-solid fa-bullhorn"></i> Recent Announcements</h2>
 
           <?php if ($announcements->num_rows > 0): ?>
             <?php while ($a = $announcements->fetch_assoc()): ?>
 
               <?php
-                // Determine target label
-                if ($a['audience'] === 'all') {
-                    $target = "All Users";
-                } elseif ($a['audience'] === 'teachers') {
-                    $target = "All Teachers";
-                } elseif ($a['audience'] === 'class') {
-                    $target = $a['course_code'] ?: "Class";
-                } else {
-                    $target = "Unknown";
-                }
+                if ($a['audience'] === 'all')          $target = "All Users";
+                elseif ($a['audience'] === 'teachers') $target = "All Teachers";
+                elseif ($a['audience'] === 'class')    $target = $a['course_code'] ?: "Class";
+                else                                   $target = "Unknown";
               ?>
 
               <div class="announcement-card"
@@ -209,7 +209,7 @@ $stmt->close();
                     <i class="fa-solid fa-eye"></i> View Details
                   </button>
 
-                  <!-- EDIT: only if this teacher is the author -->
+                  <!-- EDIT: only if teacher authored it -->
                   <?php if ($a['author_name'] === $full_name): ?>
                     <button class="edit-btn" onclick="openEdit(this)">
                       <i class="fa-solid fa-pen"></i> Edit
@@ -226,6 +226,7 @@ $stmt->close();
           <?php else: ?>
             <p style="text-align:center; font-style:italic;">No announcements to show.</p>
           <?php endif; ?>
+
         </section>
       </section>
     </main>
@@ -251,23 +252,23 @@ $stmt->close();
         <input type="hidden" name="announcement_id" id="edit_id">
 
         <label>Title:</label>
-        <input type="text" id="edit_title" name="title" required>
+        <input type="text" id="edit_title" name="title">
 
         <label>Message:</label>
-        <textarea id="edit_content" name="content" rows="5" required></textarea>
+        <textarea id="edit_content" name="content" rows="5"></textarea>
 
         <label>Select Course:</label>
-        <select name="course_id" id="edit_course" required>
+        <select name="course_id" id="edit_course">
           <?php foreach ($courses as $c): ?>
             <option value="<?= $c['course_id'] ?>">
-              <?= htmlspecialchars($c['course_code'] . ': ' . $c['course_name']) ?>
+              <?= htmlspecialchars($c['course_code'] . ": " . $c['course_name']) ?>
             </option>
           <?php endforeach; ?>
         </select>
 
         <div class="modal-buttons">
-          <button type="submit" class="save-btn">Save Changes</button>
-          <button type="button" class="cancel-btn" onclick="closeEdit()">Cancel</button>
+          <button class="save-btn" type="submit">Save Changes</button>
+          <button class="cancel-btn" type="button" onclick="closeEdit()">Cancel</button>
         </div>
       </form>
     </div>
@@ -278,21 +279,22 @@ $stmt->close();
     <div class="modal-content">
       <span class="close" onclick="closeDelete()">&times;</span>
       <h2>Delete Announcement</h2>
-      <p>Are you sure you want to delete this announcement?</p>
+      <p>Are you sure?</p>
+
       <form method="POST">
         <input type="hidden" name="action" value="delete">
         <input type="hidden" name="announcement_id" id="delete_id">
 
         <div class="modal-buttons">
-          <button type="submit" class="delete-btn">Delete</button>
-          <button type="button" class="cancel-btn" onclick="closeDelete()">Cancel</button>
+          <button class="delete-btn" type="submit">Delete</button>
+          <button class="cancel-btn" type="button" onclick="closeDelete()">Cancel</button>
         </div>
       </form>
     </div>
   </div>
 
   <script>
-    // -------- VIEW --------
+    // View
     function openView(btn) {
       const card = btn.closest('.announcement-card');
       document.getElementById('viewTitle').textContent = card.dataset.title;
@@ -302,42 +304,24 @@ $stmt->close();
     }
     function closeView(){ document.getElementById('viewModal').style.display = 'none'; }
 
-    // -------- EDIT --------
+    // Edit
     function openEdit(btn) {
-      const card = btn.closest('.announcement-card');
-      document.getElementById('edit_id').value      = card.dataset.id;
-      document.getElementById('edit_title').value   = card.dataset.title;
-      document.getElementById('edit_content').value = card.dataset.content;
-      document.getElementById('edit_course').value  = card.dataset.course;
+      const c = btn.closest('.announcement-card');
+      document.getElementById('edit_id').value    = c.dataset.id;
+      document.getElementById('edit_title').value = c.dataset.title;
+      document.getElementById('edit_content').value = c.dataset.content;
+      document.getElementById('edit_course').value  = c.dataset.course;
       document.getElementById('editModal').style.display = 'flex';
     }
     function closeEdit(){ document.getElementById('editModal').style.display = 'none'; }
 
-    // -------- DELETE --------
+    // Delete
     function openDelete(btn){
       const id = btn.closest('.announcement-card').dataset.id;
       document.getElementById('delete_id').value = id;
       document.getElementById('deleteModal').style.display = 'flex';
     }
     function closeDelete(){ document.getElementById('deleteModal').style.display = 'none'; }
-
-    // Close modals by clicking outside
-    window.addEventListener('click', e => {
-      ['viewModal','editModal','deleteModal'].forEach(id => {
-        if (e.target === document.getElementById(id)) {
-          document.getElementById(id).style.display = 'none';
-        }
-      });
-    });
-
-    // Filter announcements
-    const searchInput = document.getElementById('searchInput');
-    searchInput?.addEventListener('input', () => {
-      const q = searchInput.value.toLowerCase();
-      document.querySelectorAll('.announcement-card').forEach(card => {
-        card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
-      });
-    });
   </script>
 
 </body>
