@@ -96,20 +96,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $uid = (int)$_POST['user_id'];
 
         if ($uid > 0) {
-            $stmt = $conn->prepare("DELETE FROM student_info WHERE user_id=?");
-            $stmt->bind_param("i", $uid);
-            $stmt->execute();
-            $stmt->close();
-
-            $stmt = $conn->prepare("DELETE FROM teacher_info WHERE user_id=?");
-            $stmt->bind_param("i", $uid);
-            $stmt->execute();
-            $stmt->close();
-
-            $stmt = $conn->prepare("DELETE FROM users WHERE user_id=?");
-            $stmt->bind_param("i", $uid);
-            $stmt->execute();
-            $stmt->close();
+            $conn->query("DELETE FROM student_info WHERE user_id=$uid");
+            $conn->query("DELETE FROM teacher_info WHERE user_id=$uid");
+            $conn->query("DELETE FROM users WHERE user_id=$uid");
         }
 
         header("Location: users_admin.php");
@@ -122,12 +111,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $search     = trim($_GET['search'] ?? "");
 $roleFilter = $_GET['role'] ?? "all";
 
-// Pagination
 $perPage = 10;
 $page = max(1, (int)($_GET['page'] ?? 1));
 $offset = ($page - 1) * $perPage;
 
-// Build WHERE
 $where = "1=1";
 $params = [];
 $types  = "";
@@ -143,14 +130,13 @@ if ($roleFilter !== 'all' && in_array($roleFilter, $validRoles, true)) {
 if ($search !== "") {
     $where .= " AND (u.username LIKE ? OR u.full_name LIKE ? OR u.email LIKE ? OR u.role LIKE ?)";
     $like = "%$search%";
+
     for ($i = 0; $i < 4; $i++) {
         $params[] = $like;
         $types   .= "s";
     }
 }
 
-
-// Count total
 $sql = "SELECT COUNT(*) AS total FROM users u WHERE $where";
 $stmt = $conn->prepare($sql);
 if ($types) $stmt->bind_param($types, ...$params);
@@ -160,8 +146,6 @@ $stmt->close();
 
 $totalPages = max(1, ceil($total / $perPage));
 
-
-// Fetch data
 $sql = "
     SELECT u.user_id, u.username, u.full_name, u.email, u.role, u.created_at
     FROM users u
@@ -169,8 +153,8 @@ $sql = "
     ORDER BY u.created_at DESC, u.user_id DESC
     LIMIT ? OFFSET ?
 ";
-
 $stmt = $conn->prepare($sql);
+
 if ($types) {
     $types2 = $types . "ii";
     $bind   = array_merge($params, [$perPage, $offset]);
@@ -184,12 +168,14 @@ $res   = $stmt->get_result();
 $users = $res->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
+
 function display_role($r) {
     return $r === "teacher" ? "Professor" : ucfirst($r);
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 <meta charset="UTF-8">
 <title>Escolink Centra | User Management</title>
@@ -197,16 +183,15 @@ function display_role($r) {
 <link rel="stylesheet" href="CSS/format.css">
 <link rel="stylesheet" href="CSS/admin.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
 </head>
 
 <body>
 <div class="portal-layout">
+
     <?php include("sidebar_admin.php"); ?>
 
     <main class="main-content">
 
-        <!-- TOPBAR (RESTORED LAYOUT) -->
         <header class="topbar">
             <div class="search-container" style="visibility:hidden;"></div>
 
@@ -220,25 +205,26 @@ function display_role($r) {
             <h1>User Management</h1>
             <p class="semester-text">Manage all registered users across Escolink Centra</p>
 
-            <!-- FILTERS -->
             <form method="get" class="user-controls-form">
                 <div class="user-controls-left">
+
                     <select name="role" onchange="this.form.submit()">
-                        <option value="all"     <?= $roleFilter === "all" ? "selected" : "" ?>>All Roles</option>
-                        <option value="student" <?= $roleFilter === "student" ? "selected" : "" ?>>Student</option>
-                        <option value="teacher" <?= $roleFilter === "teacher" ? "selected" : "" ?>>Professor</option>
-                        <option value="admin"   <?= $roleFilter === "admin" ? "selected" : "" ?>>Admin</option>
+                        <option value="all"     <?= $roleFilter==="all" ? "selected" : "" ?>>All Roles</option>
+                        <option value="student" <?= $roleFilter==="student" ? "selected" : "" ?>>Student</option>
+                        <option value="teacher" <?= $roleFilter==="teacher" ? "selected" : "" ?>>Professor</option>
+                        <option value="admin"   <?= $roleFilter==="admin" ? "selected" : "" ?>>Admin</option>
                     </select>
 
                     <input type="text" name="search"
-                           placeholder="Search by username, name or email..."
-                           value="<?= htmlspecialchars($search) ?>">
+                        placeholder="Search by username, name or email..."
+                        value="<?= htmlspecialchars($search) ?>">
 
                     <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
 
                     <?php if ($search !== "" || $roleFilter !== "all"): ?>
-                        <a href="users_admin.php" style="font-size:13px;color:#b21e8f;">Clear</a>
+                        <a href="users_admin.php" class="clear-link">Clear</a>
                     <?php endif; ?>
+
                 </div>
 
                 <button type="button" class="add-btn" id="openAddUserModal">
@@ -246,7 +232,6 @@ function display_role($r) {
                 </button>
             </form>
 
-            <!-- TABLE -->
             <div class="table-wrapper">
                 <table class="user-table">
                     <thead>
@@ -265,6 +250,7 @@ function display_role($r) {
                         <tr><td colspan="6" style="text-align:center;">No users found.</td></tr>
                     <?php else: foreach ($users as $u): ?>
                         <tr>
+
                             <td><?= $u['user_id'] ?></td>
                             <td><?= htmlspecialchars($u['username']) ?></td>
                             <td><?= htmlspecialchars($u['full_name']) ?></td>
@@ -273,95 +259,179 @@ function display_role($r) {
 
                             <td>
                                 <button class="edit-btn user-edit-btn"
-                                        data-user-id="<?= $u['user_id'] ?>"
-                                        data-username="<?= htmlspecialchars($u['username'], ENT_QUOTES) ?>"
-                                        data-full-name="<?= htmlspecialchars($u['full_name'], ENT_QUOTES) ?>"
-                                        data-email="<?= htmlspecialchars($u['email'], ENT_QUOTES) ?>"
-                                        data-role="<?= htmlspecialchars($u['role'], ENT_QUOTES) ?>">
+                                    data-user-id="<?= $u['user_id'] ?>"
+                                    data-username="<?= htmlspecialchars($u['username'], ENT_QUOTES) ?>"
+                                    data-full-name="<?= htmlspecialchars($u['full_name'], ENT_QUOTES) ?>"
+                                    data-email="<?= htmlspecialchars($u['email'], ENT_QUOTES) ?>"
+                                    data-role="<?= htmlspecialchars($u['role'], ENT_QUOTES) ?>">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
 
                                 <button class="delete-btn user-delete-btn"
-                                        data-user-id="<?= $u['user_id'] ?>"
-                                        data-full-name="<?= htmlspecialchars($u['full_name'], ENT_QUOTES) ?>">
+                                    data-user-id="<?= $u['user_id'] ?>"
+                                    data-full-name="<?= htmlspecialchars($u['full_name'], ENT_QUOTES) ?>">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             </td>
+
                         </tr>
-                    <?php endforeach; endif;?>
+                    <?php endforeach; endif; ?>
                     </tbody>
+
                 </table>
             </div>
 
         </section>
+
     </main>
 </div>
 
-<!-- PAGINATION BAR (RESTORED FULLY) -->
-<div class="pagination-bar">
-    <div class="pagination-inner">
 
-        <!-- PREVIOUS -->
-        <?php if ($page > 1): ?>
-            <a href="<?= build_query(['page' => $page - 1]) ?>">&laquo;</a>
-        <?php else: ?>
-            <span class="disabled">&laquo;</span>
-        <?php endif; ?>
+<!-- ====================== ADD USER MODAL ====================== -->
+<div id="addUserModal" class="modal">
+  <div class="modal-content user-modal">
+    <span class="close" id="addUserClose">&times;</span>
 
-        <!-- NUMBERS -->
-        <?php for ($i=1; $i<=$totalPages; $i++): ?>
-            <?php if ($i == $page): ?>
-                <span class="current-page"><?= $i ?></span>
-            <?php else: ?>
-                <a href="<?= build_query(['page' => $i]) ?>"><?= $i ?></a>
-            <?php endif; ?>
-        <?php endfor; ?>
-
-        <!-- NEXT -->
-        <?php if ($page < $totalPages): ?>
-            <a href="<?= build_query(['page' => $page + 1]) ?>">&raquo;</a>
-        <?php else: ?>
-            <span class="disabled">&raquo;</span>
-        <?php endif; ?>
-
+    <div class="modal-header">
+      <i class="fa-solid fa-user-plus"></i>
+      <h2>Add New User</h2>
     </div>
+
+    <form method="post" autocomplete="off">
+      <input type="hidden" name="action" value="add_user">
+
+      <label>Full Name</label>
+      <input type="text" name="full_name" required autocomplete="off">
+
+      <label>Email</label>
+      <input type="email" name="email" required autocomplete="off">
+
+      <label>Username</label>
+      <input type="text" name="username" required autocomplete="off">
+
+      <label>Role</label>
+      <select name="role" required autocomplete="off">
+        <option value="student">Student</option>
+        <option value="teacher">Professor</option>
+        <option value="admin">Admin</option>
+      </select>
+
+      <label>Password</label>
+      <input type="password" name="password" required autocomplete="new-password">
+
+      <div class="button-group">
+        <button type="submit" class="save-btn">Save</button>
+        <button type="button" class="cancel-btn" id="addUserCancel">Cancel</button>
+      </div>
+    </form>
+
+  </div>
 </div>
 
+<!-- ====================== EDIT USER MODAL ====================== -->
+<div id="editUserModal" class="modal">
+  <div class="modal-content user-modal">
+    <span class="close" id="editUserClose">&times;</span>
 
-<!-- MODALS + JS (UNCHANGED) -->
+    <div class="modal-header">
+      <i class="fa-solid fa-user-pen"></i>
+      <h2>Edit User</h2>
+    </div>
+
+    <form method="post" autocomplete="off">
+      <input type="hidden" name="action" value="edit_user">
+      <input type="hidden" name="user_id" id="edit_user_id">
+
+      <label>Full Name</label>
+      <input type="text" id="edit_full_name" name="edit_full_name" required autocomplete="off">
+
+      <label>Email</label>
+      <input type="email" id="edit_email" name="edit_email" required autocomplete="off">
+
+      <label>Username</label>
+      <input type="text" id="edit_username" name="edit_username" required autocomplete="off">
+
+      <label>Role</label>
+      <select name="edit_role" id="edit_role" required autocomplete="off">
+        <option value="student">Student</option>
+        <option value="teacher">Professor</option>
+        <option value="admin">Admin</option>
+      </select>
+
+      <label>Change user's password</label>
+      <input type="password" id="edit_password" name="edit_password" autocomplete="new-password">
+
+      <div class="button-group">
+        <button type="submit" class="save-btn">Save Changes</button>
+        <button type="button" class="cancel-btn" id="editUserCancel">Cancel</button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- ====================== DELETE MODAL ====================== -->
+<div id="deleteUserModal" class="modal">
+  <div class="logout-modal">
+    <i class="fa-solid fa-triangle-exclamation logout-icon"></i>
+    <h3>Delete User?</h3>
+    <p id="deleteUserText"></p>
+
+    <form method="post">
+      <input type="hidden" name="action" value="delete_user">
+      <input type="hidden" name="user_id" id="delete_user_id">
+
+      <div class="logout-buttons">
+        <button type="submit" class="confirm-btn">Yes, Delete</button>
+        <button type="button" class="cancel-btn" id="deleteUserCancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ====================== JS ====================== -->
 <script>
-function openModal(id){ document.getElementById(id).style.display="flex"; }
-function closeModal(id){ document.getElementById(id).style.display="none"; }
 
-document.getElementById("openAddUserModal").onclick = ()=>openModal("addUserModal");
-document.getElementById("addUserClose").onclick = ()=>closeModal("addUserModal");
-document.getElementById("addUserCancel").onclick = ()=>closeModal("addUserModal");
+function openModal(id){
+  const m=document.getElementById(id);
+  if(m) m.style.display="flex";
+}
+
+function closeModal(id){
+  const m=document.getElementById(id);
+  if(m) m.style.display="none";
+}
+
+document.getElementById("openAddUserModal").onclick=()=>openModal("addUserModal");
+document.getElementById("addUserClose").onclick=()=>closeModal("addUserModal");
+document.getElementById("addUserCancel").onclick=()=>closeModal("addUserModal");
 
 document.querySelectorAll(".user-edit-btn").forEach(btn=>{
-    btn.onclick = ()=>{
-        document.getElementById("edit_user_id").value = btn.dataset.userId;
-        document.getElementById("edit_full_name").value = btn.dataset.fullName;
-        document.getElementById("edit_email").value = btn.dataset.email;
-        document.getElementById("edit_username").value = btn.dataset.username;
-        document.getElementById("edit_role").value = btn.dataset.role;
-        document.getElementById("edit_password").value = "";
-        openModal("editUserModal");
-    };
+  btn.onclick=()=>{
+    document.getElementById("edit_user_id").value=btn.dataset.userId;
+    document.getElementById("edit_full_name").value=btn.dataset.fullName;
+    document.getElementById("edit_email").value=btn.dataset.email;
+    document.getElementById("edit_username").value=btn.dataset.username;
+    document.getElementById("edit_role").value=btn.dataset.role;
+    document.getElementById("edit_password").value="";
+    openModal("editUserModal");
+  };
 });
 
-document.getElementById("editUserClose").onclick = ()=>closeModal("editUserModal");
-document.getElementById("editUserCancel").onclick = ()=>closeModal("editUserModal");
+document.getElementById("editUserClose").onclick=()=>closeModal("editUserModal");
+document.getElementById("editUserCancel").onclick=()=>closeModal("editUserModal");
 
 document.querySelectorAll(".user-delete-btn").forEach(btn=>{
-    btn.onclick = ()=>{
-        document.getElementById("delete_user_id").value = btn.dataset.userId;
-        document.getElementById("deleteUserText").textContent =
-            'This will remove user "' + btn.dataset.fullName + '" and linked academic info.';
-        openModal("deleteUserModal");
-    };
+  btn.onclick=()=>{
+    document.getElementById("delete_user_id").value=btn.dataset.userId;
+    document.getElementById("deleteUserText").textContent=
+      'This will remove user "'+btn.dataset.fullName+'" and any linked academic info.';
+    openModal("deleteUserModal");
+  };
 });
 
-document.getElementById("deleteUserCancel").onclick = ()=>closeModal("deleteUserModal");
+document.getElementById("deleteUserCancel").onclick=()=>closeModal("deleteUserModal");
+
 </script>
 
 </body>
