@@ -2,6 +2,7 @@
 include("../includes/auth_session.php");
 include("../includes/auth_teacher.php");
 include("../config/db_connect.php");
+include("../includes/logging.php"); // <-- ADDED
 
 $user_id   = $_SESSION['user_id'];
 $full_name = $_SESSION['full_name'] ?? "Professor";
@@ -21,7 +22,21 @@ $avatar = (!empty($profile_pic))
     : "images/ProfileImg.png";
 
 /* ---------------------------------------------------------
+   FETCH TEACHER'S COURSES (USED FOR LOGGING)
+--------------------------------------------------------- */
+$courseMap = []; 
+$stmt = $conn->prepare("SELECT course_id, course_code, course_name FROM courses WHERE teacher_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$res = $stmt->get_result();
+while ($row = $res->fetch_assoc()) {
+    $courseMap[$row['course_id']] = $row['course_code'] . " - " . $row['course_name'];
+}
+$stmt->close();
+
+/* ---------------------------------------------------------
    CREATE ANNOUNCEMENT
+   LOGGING ADDED
 --------------------------------------------------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create') {
   $title     = trim($_POST['title'] ?? '');
@@ -29,20 +44,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
   $course_id = (int)($_POST['course_id'] ?? 0);
 
   if ($title !== '' && $content !== '' && $course_id > 0) {
+
     $stmt = $conn->prepare("
       INSERT INTO announcements (title, content, author_id, audience, course_id, date_posted)
       VALUES (?, ?, ?, 'class', ?, NOW())
     ");
     $stmt->bind_param("ssii", $title, $content, $user_id, $course_id);
     $stmt->execute();
+    $newId = $stmt->insert_id;
     $stmt->close();
+
+    /* ------ LOG: CREATE ------ */
+    $cLabel = $courseMap[$course_id] ?? "Course ID {$course_id}";
+    log_activity(
+        $conn,
+        (int)$user_id,
+        "Posted Class Announcement",
+        "Created announcement '{$title}' (ID {$newId}) for {$cLabel}.",
+        "success"
+    );
   }
+
   header("Location: announcements_prof.php");
   exit;
 }
 
 /* ---------------------------------------------------------
    EDIT ANNOUNCEMENT
+   LOGGING ADDED
 --------------------------------------------------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit') {
   $id        = (int)($_POST['announcement_id'] ?? 0);
@@ -51,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit'
   $course_id = (int)($_POST['course_id'] ?? 0);
 
   if ($id > 0 && $title !== '' && $content !== '' && $course_id > 0) {
+
     $stmt = $conn->prepare("
       UPDATE announcements
       SET title = ?, content = ?, course_id = ?, date_posted = NOW()
@@ -59,28 +89,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit'
     $stmt->bind_param("ssiii", $title, $content, $course_id, $id, $user_id);
     $stmt->execute();
     $stmt->close();
+
+    /* ------ LOG: EDIT ------ */
+    $cLabel = $courseMap[$course_id] ?? "Course ID {$course_id}";
+    log_activity(
+        $conn,
+        (int)$user_id,
+        "Edited Class Announcement",
+        "Updated announcement '{$title}' (ID {$id}) for {$cLabel}.",
+        "success"
+    );
   }
+
   header("Location: announcements_prof.php");
   exit;
 }
 
 /* ---------------------------------------------------------
    DELETE ANNOUNCEMENT
+   LOGGING ADDED
 --------------------------------------------------------- */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
   $id = (int)($_POST['announcement_id'] ?? 0);
+
   if ($id > 0) {
+
+    // Fetch announcement title & course for logging
+    $stmt = $conn->prepare("
+      SELECT title, course_id 
+      FROM announcements 
+      WHERE announcement_id = ? AND author_id = ?
+    ");
+    $stmt->bind_param("ii", $id, $user_id);
+    $stmt->execute();
+    $stmt->bind_result($delTitle, $delCourse);
+    $stmt->fetch();
+    $stmt->close();
+
     $stmt = $conn->prepare("DELETE FROM announcements WHERE announcement_id = ? AND author_id = ?");
     $stmt->bind_param("ii", $id, $user_id);
     $stmt->execute();
     $stmt->close();
+
+    /* ------ LOG: DELETE ------ */
+    $cLabel = $courseMap[$delCourse] ?? "Course ID {$delCourse}";
+    log_activity(
+        $conn,
+        (int)$user_id,
+        "Deleted Class Announcement",
+        "Deleted announcement '{$delTitle}' (ID {$id}) from {$cLabel}.",
+        "success"
+    );
   }
+
   header("Location: announcements_prof.php");
   exit;
 }
 
 /* ---------------------------------------------------------
-   FETCH TEACHER'S COURSES
+   FETCH TEACHER COURSES AGAIN (for dropdown)
 --------------------------------------------------------- */
 $courses = [];
 $stmt = $conn->prepare("SELECT course_id, course_code, course_name FROM courses WHERE teacher_id = ?");
@@ -91,7 +158,7 @@ while ($row = $res->fetch_assoc()) $courses[] = $row;
 $stmt->close();
 
 /* ---------------------------------------------------------
-   ANNOUNCEMENTS VISIBLE TO TEACHER
+   FETCH ANNOUNCEMENTS VISIBLE TO TEACHER
 --------------------------------------------------------- */
 $stmt = $conn->prepare("
   SELECT 
@@ -106,7 +173,7 @@ $stmt = $conn->prepare("
       u.full_name AS author_name
   FROM announcements a
   LEFT JOIN courses c ON c.course_id = a.course_id
-  LEFT JOIN users u ON u.user_id = a.author_id
+  LEFT JOIN users  u ON u.user_id  = a.author_id
   WHERE 
       a.audience = 'all'
       OR a.audience = 'teachers'
