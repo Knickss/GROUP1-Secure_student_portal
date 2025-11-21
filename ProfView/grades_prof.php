@@ -2,6 +2,7 @@
 include('../includes/auth_session.php');
 include("../includes/auth_teacher.php");
 include('../config/db_connect.php');
+include("../includes/logging.php"); // <-- ADDED
 
 // Block non-teachers
 if ($_SESSION['role'] !== 'teacher') {
@@ -31,19 +32,39 @@ $success_message = "";
 
 
 // ===============================================================
-//  SAVE GRADES
+//  SAVE GRADES (LOGGING ADDED)
 // ===============================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['grades'])) {
 
     $course_id = (int)($_POST['course_id'] ?? 0);
+
+    // Fetch course label for logging clarity
+    $stmtC = $conn->prepare("SELECT course_code, course_name FROM courses WHERE course_id = ?");
+    $stmtC->bind_param("i", $course_id);
+    $stmtC->execute();
+    $stmtC->bind_result($ccode, $cname);
+    $stmtC->fetch();
+    $stmtC->close();
+    $courseLabel = "{$ccode} - {$cname}";
 
     foreach ($_POST['grades'] as $student_id => $grade) {
 
         if ($grade === "") continue;
 
         $student_id = (int)$student_id;
-        $grade = (float)$grade;
+        $newGrade = floatval($grade);
 
+        // Fetch old grade for logging comparison
+        $stmtOld = $conn->prepare("SELECT grade FROM grades WHERE student_id=? AND course_id=?");
+        $stmtOld->bind_param("ii", $student_id, $course_id);
+        $stmtOld->execute();
+        $stmtOld->bind_result($oldGrade);
+        $stmtOld->fetch();
+        $stmtOld->close();
+
+        $hadOld = ($oldGrade !== null);
+
+        // Save grade to DB
         $stmt = $conn->prepare("
             INSERT INTO grades (student_id, course_id, grade, encoded_by, date_encoded)
             VALUES (?, ?, ?, ?, NOW())
@@ -52,9 +73,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['grades'])) {
                 encoded_by = VALUES(encoded_by),
                 date_encoded = NOW()
         ");
-        $stmt->bind_param("iidi", $student_id, $course_id, $grade, $teacher_id);
+        $stmt->bind_param("iidi", $student_id, $course_id, $newGrade, $teacher_id);
         $stmt->execute();
         $stmt->close();
+
+        // LOGGING: identify if new grade or edit
+        if (!$hadOld) {
+            // New assigned grade
+            log_activity(
+                $conn,
+                (int)$teacher_id,
+                "Assigned Grade",
+                "Assigned grade {$newGrade} to student {$student_id} for {$courseLabel}.",
+                "success"
+            );
+        } else {
+            // Updated grade
+            log_activity(
+                $conn,
+                (int)$teacher_id,
+                "Updated Grade",
+                "Changed grade of student {$student_id} for {$courseLabel} from {$oldGrade} to {$newGrade}.",
+                "success"
+            );
+        }
     }
 
     $success_message = "Grades successfully saved!";
@@ -102,6 +144,7 @@ if ($selected_course_id) {
     $stmt->close();
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
