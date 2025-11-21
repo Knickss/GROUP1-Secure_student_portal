@@ -2,6 +2,7 @@
 include("../includes/auth_session.php");
 include("../includes/auth_student.php");
 include("../config/db_connect.php");
+include("../includes/logging.php"); // <-- ADDED
 
 $user_id = $_SESSION['user_id'];
 
@@ -43,12 +44,15 @@ $error = '';
 $success = '';
 
 
-// ===== UPDATE PROFILE (About Me + Profile Picture Only) =====
+// ======================================================================
+// UPDATE PROFILE (About Me + Profile Picture Only)
+// LOGGING ADDED
+// ======================================================================
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_profile"])) {
     $new_about = trim($_POST["about_me"] ?? '');
     $new_pfp = $profile_pic;
 
-    // Profile image
+    // Handle profile picture upload
     if (!empty($_FILES['profile_image']['name'])) {
         $dir = "../uploads/";
         if (!is_dir($dir)) mkdir($dir, 0775, true);
@@ -66,17 +70,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_profile"])) {
         }
     }
 
+    // Update database
     $stmt = $conn->prepare("UPDATE users SET about_me = ?, profile_pic = ? WHERE user_id = ?");
     $stmt->bind_param("ssi", $new_about, $new_pfp, $user_id);
     $stmt->execute();
     $stmt->close();
+
+    // LOG PROFILE UPDATE
+    log_activity(
+        $conn,
+        (int)$user_id,
+        "Updated Profile",
+        "Student updated profile (About Me + Profile Picture). AboutMe length=" . strlen($new_about) . ", ProfilePic='{$new_pfp}'.",
+        "success"
+    );
 
     header("Location: profile_st.php?updated=1");
     exit;
 }
 
 
-// ===== PASSWORD CHANGE =====
+// ======================================================================
+// PASSWORD CHANGE
+// LOGGING ADDED
+// ======================================================================
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["change_password"])) {
     $current = $_POST["current_password"] ?? '';
     $new     = $_POST["new_password"] ?? '';
@@ -101,7 +118,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["change_password"])) {
         $stmt->bind_param("si", $new_hash, $user_id);
         $stmt->execute();
         $stmt->close();
+
         $success = "Password updated successfully.";
+
+        // LOG PASSWORD CHANGE
+        log_activity(
+            $conn,
+            (int)$user_id,
+            "Changed Password",
+            "Student changed their account password.",
+            "success"
+        );
     }
 }
 
@@ -112,6 +139,7 @@ $avatar = (!empty($profile_pic))
     : 'images/blank_pic.png';
 
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
