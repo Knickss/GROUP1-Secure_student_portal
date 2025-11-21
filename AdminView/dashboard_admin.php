@@ -178,7 +178,7 @@ if ($latestLog && $latestLog->num_rows > 0):
     }
 
     function confirmLogout() {
-      window.location.href = "../LoginPage/login.php";
+      window.location.href = "../logout.php";
     }
 
     window.onclick = function(event) {

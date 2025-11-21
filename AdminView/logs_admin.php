@@ -4,7 +4,7 @@ include("../includes/auth_admin.php");
 include("../config/db_connect.php");
 
 // ================== HEADER USER INFO ==================
-$user_id   = $_SESSION['user_id'];
+$user_id   = $_SESSION['user_id'] ?? 0;
 $full_name = $_SESSION['full_name'] ?? 'System Administrator';
 
 // default avatar
@@ -105,8 +105,8 @@ $sql_logs = "
 $stmt = $conn->prepare($sql_logs);
 
 if ($types !== "") {
-    $bindTypes = $types . "ii";
-    $bindParams = array_merge($params, [$perPage, $offset]);
+    $bindTypes   = $types . "ii";
+    $bindParams  = array_merge($params, [$perPage, $offset]);
     $stmt->bind_param($bindTypes, ...$bindParams);
 } else {
     $stmt->bind_param("ii", $perPage, $offset);
@@ -132,7 +132,7 @@ $result = $stmt->get_result();
 
     <main class="main-content">
 
-      <!-- Topbar (REMOVED SEARCH BAR) -->
+      <!-- Topbar -->
       <header class="topbar">
         <div></div>
         <div class="profile-section">
@@ -191,34 +191,51 @@ $result = $stmt->get_result();
               </tr>
             </thead>
             <tbody>
-            <?php if ($result->num_rows > 0): ?>
-              <?php while ($row = $result->fetch_assoc()): ?>
-                <tr>
-                  <td><?= htmlspecialchars($row['timestamp']) ?></td>
-                  <td><?= htmlspecialchars($row['display_id']) ?></td>
-                  <td><?= htmlspecialchars($row['full_name']) ?></td>
-                  <td><?= htmlspecialchars(ucfirst($row['role'])) ?></td>
-                  <td><?= htmlspecialchars($row['action']) ?></td>
-                  <td>
-                    <button class="view-log-btn"
-                        type="button"
-                        data-log-title="<?= htmlspecialchars($row['action']) ?>"
-                        data-log-datetime="<?= htmlspecialchars($row['timestamp']) ?>"
-                        data-log-user="<?= htmlspecialchars($row['full_name']) ?>"
-                        data-log-id="<?= htmlspecialchars($row['display_id']) ?>"
-                        data-log-role="<?= htmlspecialchars(ucfirst($row['role'])) ?>"
-                        data-log-details="<?= htmlspecialchars($row['details']) ?>"
-                        data-log-status="<?= htmlspecialchars($row['status']) ?>"
-                        data-log-ip="<?= htmlspecialchars($row['ip_address']) ?>"
-                        onclick="openLogDetails(this)">
-                      View
-                    </button>
-                  </td>
-                </tr>
-              <?php endwhile; ?>
-            <?php else: ?>
-              <tr><td colspan="6" class="empty-state">No logs found.</td></tr>
-            <?php endif; ?>
+
+<?php if ($result->num_rows > 0): ?>
+<?php while ($row = $result->fetch_assoc()): ?>
+
+<?php
+// NULL-safe values
+$ts    = $row['timestamp']   ?? '';
+$act   = $row['action']      ?? '';
+$det   = $row['details']     ?? '';
+$stat  = $row['status']      ?? '';
+$ip    = $row['ip_address']  ?? '';
+$uid   = $row['display_id']  ?? '';
+$uname = $row['full_name']   ?? '';
+$role  = $row['role']        ?? '';
+$roleClean = $role ? ucfirst($role) : "";
+?>
+
+<tr>
+  <td><?= htmlspecialchars($ts) ?></td>
+  <td><?= htmlspecialchars($uid) ?></td>
+  <td><?= htmlspecialchars($uname) ?></td>
+  <td><?= htmlspecialchars($roleClean) ?></td>
+  <td><?= htmlspecialchars($act) ?></td>
+  <td>
+    <button class="view-log-btn"
+        type="button"
+        data-log-title="<?= htmlspecialchars($act) ?>"
+        data-log-datetime="<?= htmlspecialchars($ts) ?>"
+        data-log-user="<?= htmlspecialchars($uname) ?>"
+        data-log-id="<?= htmlspecialchars($uid) ?>"
+        data-log-role="<?= htmlspecialchars($roleClean) ?>"
+        data-log-status="<?= htmlspecialchars($stat) ?>"
+        data-log-ip="<?= htmlspecialchars($ip) ?>"
+        data-log-details="<?= htmlspecialchars($det) ?>"
+        onclick="openLogDetails(this)">
+      View
+    </button>
+  </td>
+</tr>
+
+<?php endwhile; ?>
+<?php else: ?>
+<tr><td colspan="6" class="empty-state">No logs found.</td></tr>
+<?php endif; ?>
+
             </tbody>
           </table>
         </div>
@@ -229,7 +246,7 @@ $result = $stmt->get_result();
 
   </div>
 
-  <!-- Log Details Modal (unchanged) -->
+  <!-- Log Details Modal -->
   <div id="logDetailsModal" class="modal">
     <div class="modal-content user-modal">
       <span class="close" onclick="closeModal('logDetailsModal')">&times;</span>
@@ -244,23 +261,21 @@ $result = $stmt->get_result();
     </div>
   </div>
 
-
-  <!-- ====================== PAGINATION (STICKY) ====================== -->
+  <!-- Pagination -->
   <div class="pagination-bar">
     <div class="pagination-inner">
-
       <?php $prev = $page - 1; $next = $page + 1; ?>
 
-      <!-- Previous -->
-      <span class="<?= ($page <= 1) ? 'disabled' : '' ?>">
-        <?php if ($page > 1): ?>
+      <!-- Prev -->
+      <span class="<?= ($page<=1)?'disabled':'' ?>">
+        <?php if ($page>1): ?>
           <a href="<?= build_query(['page'=>$prev]) ?>">&laquo;</a>
         <?php else: ?>&laquo;<?php endif; ?>
       </span>
 
       <!-- Pages -->
       <?php for ($i=1; $i<=$totalPages; $i++): ?>
-        <?php if ($i == $page): ?>
+        <?php if ($i==$page): ?>
           <span class="current-page"><?= $i ?></span>
         <?php else: ?>
           <a href="<?= build_query(['page'=>$i]) ?>"><?= $i ?></a>
@@ -268,15 +283,14 @@ $result = $stmt->get_result();
       <?php endfor; ?>
 
       <!-- Next -->
-      <span class="<?= ($page >= $totalPages) ? 'disabled' : '' ?>">
-        <?php if ($page < $totalPages): ?>
+      <span class="<?= ($page>=$totalPages)?'disabled':'' ?>">
+        <?php if ($page<$totalPages): ?>
           <a href="<?= build_query(['page'=>$next]) ?>">&raquo;</a>
         <?php else: ?>&raquo;<?php endif; ?>
       </span>
 
     </div>
   </div>
-
 
   <script>
     function openModal(id){document.getElementById(id).style.display="flex";}
