@@ -1,16 +1,19 @@
 <?php
 // -------------------------------------------
-// SECURE COOKIE SETTINGS — MUST COME FIRST
+// SECURE COOKIE SETTINGS — AUTO-DETECT HTTPS
+// MUST COME BEFORE session_start()
 // -------------------------------------------
+$isHTTPS = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+           || $_SERVER['SERVER_PORT'] == 443;
+
 session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',
     'domain' => '',
-    'secure' => false,   // set true on HTTPS deployment
-    'httponly' => true,
+    'secure' => $isHTTPS,   // auto-detect: true on HTTPS, false on localhost
+    'httponly' => true,     // always true for security
     'samesite' => 'Strict'
 ]);
-
 session_start();
 
 require_once __DIR__ . "/../config/db_connect.php";
