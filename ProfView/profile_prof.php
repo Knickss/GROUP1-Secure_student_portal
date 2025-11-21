@@ -2,6 +2,7 @@
 include("../includes/auth_session.php");
 include("../includes/auth_teacher.php");
 include("../config/db_connect.php");
+include("../includes/logging.php"); // <-- ADDED
 
 $user_id = $_SESSION['user_id'];
 
@@ -55,12 +56,16 @@ while ($row = $c_result->fetch_assoc()) {
 }
 $course_list = $courses ? implode(', ', $courses) : "No courses assigned";
 
-// ===== PROFILE UPDATE (ABOUT ME + PROFILE PIC ONLY) =====
+
+// ======================================================================
+//  UPDATE PROFILE (ABOUT ME + PROFILE PIC ONLY)
+//  LOGGING ADDED
+// ======================================================================
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_profile"])) {
   $new_about = trim($_POST["about_me"] ?? '');
   $new_pfp   = $profile_pic;
 
-  // Image upload
+  // ----- Handle image upload -----
   if (!empty($_FILES['profile_image']['name'])) {
     $dir = "../uploads/";
     if (!is_dir($dir)) {
@@ -80,16 +85,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_profile"])) {
     }
   }
 
+  // ----- Update DB -----
   $stmt = $conn->prepare("UPDATE users SET about_me = ?, profile_pic = ? WHERE user_id = ?");
   $stmt->bind_param("ssi", $new_about, $new_pfp, $user_id);
   $stmt->execute();
   $stmt->close();
 
+  // ----- LOG: Profile Update -----
+  log_activity(
+      $conn,
+      (int)$user_id,
+      "Updated Profile",
+      "Updated profile (About Me + Profile Picture). AboutMe length=" . strlen($new_about) . ", ProfilePic='{$new_pfp}'.",
+      "success"
+  );
+
   header("Location: profile_prof.php?updated=1");
   exit;
 }
 
-// ===== PASSWORD CHANGE =====
+
+// ======================================================================
+//  CHANGE PASSWORD
+//  LOGGING ADDED
+// ======================================================================
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["change_password"])) {
   $current = $_POST["current_password"] ?? '';
   $new     = $_POST["new_password"] ?? '';
@@ -114,7 +133,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["change_password"])) {
     $stmt->bind_param("si", $new_hash, $user_id);
     $stmt->execute();
     $stmt->close();
+
     $success = "Password updated successfully.";
+
+    // ----- LOG: Password Change -----
+    log_activity(
+        $conn,
+        (int)$user_id,
+        "Changed Password",
+        "Professor changed their account password.",
+        "success"
+    );
   }
 }
 
@@ -122,6 +151,7 @@ $avatar = (!empty($profile_pic))
   ? '../uploads/' . htmlspecialchars($profile_pic)
   : 'images/ProfileImg.png';
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
