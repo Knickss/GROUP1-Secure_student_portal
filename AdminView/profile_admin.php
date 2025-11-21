@@ -1,5 +1,6 @@
 <?php
 include("../includes/auth_session.php");
+include("../includes/auth_admin.php"); 
 include("../config/db_connect.php");
 
 $user_id = $_SESSION['user_id'];
