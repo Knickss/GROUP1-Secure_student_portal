@@ -22,11 +22,10 @@ $adminPic = !empty($admin['profile_pic'])
   : "images/ProfileImg.png";
 
 // Fetch statistics
-$totalUsers     = $conn->query("SELECT COUNT(*) AS total FROM users")->fetch_assoc()['total'];
-$totalCourses   = $conn->query("SELECT COUNT(*) AS total FROM courses")->fetch_assoc()['total'] ?? 0;
-$activeSessions = 0; // placeholder
+$totalUsers   = $conn->query("SELECT COUNT(*) AS total FROM users")->fetch_assoc()['total'];
+$totalCourses = $conn->query("SELECT COUNT(*) AS total FROM courses")->fetch_assoc()['total'] ?? 0;
 
-// Fetch latest 5 logs from activity_logs table
+// Fetch latest 5 logs
 $logs = $conn->query("
   SELECT action, details, timestamp 
   FROM activity_logs 
@@ -53,17 +52,14 @@ $logs = $conn->query("
     <!-- Main Content -->
     <main class="main-content">
 
-      <!-- Topbar -->
+      <!-- Topbar (CLEANED) -->
       <header class="topbar">
-        <div class="search-container">
-          <input type="text" placeholder="Search..." class="search-bar">
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        </div>
+        <div></div>
 
         <div class="profile-section">
           <img src="<?= htmlspecialchars($adminPic) ?>" alt="Admin Avatar" class="avatar">
           <span class="profile-name"><?= htmlspecialchars($admin['full_name']) ?></span>
-          <i class="fa-solid fa-chevron-down dropdown-icon"></i>
+          <!-- dropdown icon removed -->
         </div>
       </header>
 
@@ -84,16 +80,59 @@ $logs = $conn->query("
             <p id="stat-total-courses"><?= $totalCourses ?></p>
           </div>
 
-          <div class="summary-card">
-            <h4><i class="fa-solid fa-signal"></i> Active Sessions</h4>
-            <p id="stat-active-sessions"><?= $activeSessions ?></p>
-          </div>
+          <!-- Active Sessions removed -->
 
           <div class="summary-card">
             <h4><i class="fa-solid fa-clock-rotate-left"></i> Recent Activity</h4>
-            <p id="stat-recent">Latest System Actions</p>
+            <?php
+// Fetch latest log for summary card
+$latestLog = $conn->query("
+    SELECT action, details, timestamp
+    FROM activity_logs
+    ORDER BY log_id DESC
+    LIMIT 1
+");
+
+if ($latestLog && $latestLog->num_rows > 0):
+    $ll = $latestLog->fetch_assoc();
+    $formattedTime = date('h:i A', strtotime($ll['timestamp']));
+?>
+    <p id="stat-recent">
+        [<?= $formattedTime ?>] <?= htmlspecialchars($ll['action']) ?>
+    </p>
+<?php else: ?>
+    <p id="stat-recent">No recent activity.</p>
+<?php endif; ?>
+
           </div>
         </div>
+
+        <!-- Quick Access Card -->
+<div class="summary-container" style="margin-top: 20px;">
+  <div class="summary-card" style="flex-direction: column; align-items: flex-start; padding: 20px;">
+    <h4><i class="fa-solid fa-bolt"></i> Quick Access</h4>
+
+    <div style="display:flex; gap:10px; margin-top:10px;">
+
+      <a href="users_admin.php" class="quick-btn"
+         style="background:#d94378; color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-size:14px;">
+        <i class="fa-solid fa-users"></i> User Management
+      </a>
+
+      <a href="announcements_admin.php" class="quick-btn"
+         style="background:#d94378; color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-size:14px;">
+        <i class="fa-solid fa-bullhorn"></i> Announcements
+      </a>
+
+      <a href="logs_admin.php" class="quick-btn"
+         style="background:#d94378; color:white; padding:10px 16px; border-radius:8px; text-decoration:none; font-size:14px;">
+        <i class="fa-solid fa-clipboard-list"></i> Activity Logs
+      </a>
+
+    </div>
+  </div>
+</div>
+
 
         <!-- Recent Activity Feed -->
         <div class="activity-section">
@@ -104,7 +143,7 @@ $logs = $conn->query("
               <?php while ($log = $logs->fetch_assoc()): ?>
                 <div class="activity-item">
                   <span class="activity-label">[<?= date('h:i A', strtotime($log['timestamp'])) ?>]</span>
-                  <?= htmlspecialchars($log['details']) ?>
+                  <?= htmlspecialchars($log['action']) ?> — <?= htmlspecialchars($log['details']) ?>
                 </div>
               <?php endwhile; ?>
             <?php else: ?>
@@ -116,7 +155,7 @@ $logs = $conn->query("
     </main>
   </div>
 
-  <!-- Logout Confirmation Modal -->
+  <!-- Logout Modal -->
   <div id="adminLogoutModal" class="modal">
     <div class="logout-modal">
       <i class="fa-solid fa-right-from-bracket logout-icon"></i>
