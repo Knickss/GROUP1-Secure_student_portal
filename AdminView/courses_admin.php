@@ -1,7 +1,24 @@
 <?php
 include("../includes/auth_session.php");
-include("../includes/auth_admin.php"); 
+include("../includes/auth_admin.php");
 include("../config/db_connect.php");
+
+// ================== FETCH LOGGED-IN USER HEADER INFO ==================
+$user_id   = $_SESSION['user_id'];
+$full_name = $_SESSION['full_name'] ?? 'User';
+
+$avatar = "images/ProfileImg.png";
+
+// Load profile picture
+$stmtP = $conn->prepare("SELECT profile_pic FROM users WHERE user_id = ?");
+$stmtP->bind_param("i", $user_id);
+$stmtP->execute();
+$stmtP->bind_result($profile_pic);
+if ($stmtP->fetch() && !empty($profile_pic)) {
+    $avatar = "../uploads/" . htmlspecialchars($profile_pic, ENT_QUOTES);
+}
+$stmtP->close();
+
 
 // ---------- SMALL HELPER ----------
 function build_query(array $overrides = []): string {
@@ -207,12 +224,12 @@ if ($tRes) {
     <main class="main-content">
         <!-- Topbar -->
         <header class="topbar">
-            <div></div>
+            <!-- invisible left container so layout matches other pages -->
+            <div class="search-container" style="visibility:hidden;"></div>
 
             <div class="profile-section">
-                <img src="images/ProfileImg.png" alt="Admin Avatar" class="avatar">
-                <span class="profile-name">Admin Shamir</span>
-                <i class="fa-solid fa-chevron-down dropdown-icon"></i>
+                <img src="<?php echo $avatar; ?>" alt="Admin Avatar" class="avatar">
+                <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
             </div>
         </header>
 
