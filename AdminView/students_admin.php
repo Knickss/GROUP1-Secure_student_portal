@@ -2,6 +2,23 @@
 include("../includes/auth_session.php");
 include("../config/db_connect.php");
 
+// ================== FETCH LOGGED-IN USER HEADER INFO ==================
+$user_id   = $_SESSION['user_id'];
+$full_name = $_SESSION['full_name'] ?? 'User';
+
+$avatar = "images/ProfileImg.png";
+
+// Load profile picture
+$stmtP = $conn->prepare("SELECT profile_pic FROM users WHERE user_id = ?");
+$stmtP->bind_param("i", $user_id);
+$stmtP->execute();
+$stmtP->bind_result($profile_pic);
+if ($stmtP->fetch() && !empty($profile_pic)) {
+    $avatar = "../uploads/" . htmlspecialchars($profile_pic, ENT_QUOTES);
+}
+$stmtP->close();
+
+
 // ---------- SMALL HELPER ----------
 function build_query(array $overrides = []): string {
     $params = $_GET;
@@ -16,6 +33,7 @@ function build_query(array $overrides = []): string {
     return $query ? ('?' . $query) : '';
 }
 
+
 // ---------- HANDLE POST (ADD / EDIT / DELETE) ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -28,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $section    = trim($_POST['section'] ?? '');
 
         if ($user_id > 0) {
-            // check if student_info row exists
+            // Check if exists
             $stmt = $conn->prepare("SELECT id FROM student_info WHERE user_id = ?");
             $stmt->bind_param("i", $user_id);
             $stmt->execute();
@@ -37,7 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
 
             if ($exists) {
-                // UPDATE existing academic info
                 $stmt = $conn->prepare("
                     UPDATE student_info
                     SET student_id = ?, program = ?, year_level = ?, section = ?
@@ -45,7 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ");
                 $stmt->bind_param("ssssi", $student_id, $program, $year_level, $section, $user_id);
             } else {
-                // INSERT new academic info
                 $stmt = $conn->prepare("
                     INSERT INTO student_info (user_id, student_id, program, year_level, section)
                     VALUES (?, ?, ?, ?, ?)
@@ -57,11 +73,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
 
-        // Always reset back to first page after save
         header("Location: students_admin.php" . build_query(['page' => null]));
         exit;
 
     } elseif ($action === 'delete_student') {
+
         $user_id = (int)($_POST['user_id'] ?? 0);
         if ($user_id > 0) {
             $stmt = $conn->prepare("DELETE FROM student_info WHERE user_id = ?");
@@ -75,15 +91,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+
 // ---------- SEARCH / PAGINATION ----------
 $search = trim($_GET['search'] ?? '');
 
-// base WHERE: only student users
-$where = "u.role = 'student'";
+// Base WHERE
+$where  = "u.role = 'student'";
 $params = [];
 $types  = '';
 
-// search across id, name, program, year, section, email
 if ($search !== '') {
     $where .= " AND (
         COALESCE(s.student_id, '') LIKE ? OR
@@ -93,36 +109,36 @@ if ($search !== '') {
         COALESCE(s.section, '') LIKE ? OR
         u.email LIKE ?
     )";
-    $like = '%' . $search . '%';
+    $like   = '%' . $search . '%';
     $params = array_fill(0, 6, $like);
     $types  = 'ssssss';
 }
 
-// pagination config
+// Pagination setup
 $perPage = 10;
 $page    = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset  = ($page - 1) * $perPage;
 
-// ----- COUNT -----
+
+// Count
 $countSql = "
     SELECT COUNT(*) AS total
     FROM users u
     LEFT JOIN student_info s ON u.user_id = s.user_id
     WHERE $where
 ";
-
 $stmt = $conn->prepare($countSql);
 if ($types !== '') {
     $stmt->bind_param($types, ...$params);
 }
 $stmt->execute();
-$countRes   = $stmt->get_result();
-$total      = $countRes->fetch_assoc()['total'] ?? 0;
+$total = $stmt->get_result()->fetch_assoc()['total'] ?? 0;
 $stmt->close();
 
 $totalPages = max(1, ceil($total / $perPage));
 
-// ----- FETCH DATA (ORDER BY CREATED_AT DESC) -----
+
+// Fetch data
 $dataSql = "
     SELECT
         u.user_id,
@@ -139,31 +155,26 @@ $dataSql = "
     ORDER BY u.created_at DESC
     LIMIT ? OFFSET ?
 ";
-
 $stmt = $conn->prepare($dataSql);
 if ($types !== '') {
     $types2 = $types . "ii";
-    $p2 = array_merge($params, [$perPage, $offset]);
+    $p2     = array_merge($params, [$perPage, $offset]);
     $stmt->bind_param($types2, ...$p2);
 } else {
     $stmt->bind_param("ii", $perPage, $offset);
 }
 $stmt->execute();
-$result = $stmt->get_result();
-
+$result   = $stmt->get_result();
 $students = [];
 while ($row = $result->fetch_assoc()) {
     $students[] = $row;
 }
 $stmt->close();
 
-// list of student users for dropdown (could show all students)
-$userSql = "SELECT user_id, full_name FROM users WHERE role = 'student' ORDER BY created_at DESC";
-$userRes = $conn->query($userSql);
-$studentUsers = [];
-while ($u = $userRes->fetch_assoc()) {
-    $studentUsers[] = $u;
-}
+
+// Student users list
+$userSql       = "SELECT user_id, full_name FROM users WHERE role = 'student' ORDER BY created_at DESC";
+$studentUsers  = $conn->query($userSql)->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -175,7 +186,6 @@ while ($u = $userRes->fetch_assoc()) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 
-
 <body>
   <div class="portal-layout">
     <?php include('sidebar_admin.php'); ?>
@@ -183,21 +193,12 @@ while ($u = $userRes->fetch_assoc()) {
     <main class="main-content">
       <!-- Topbar -->
       <header class="topbar">
-        <form class="search-container" method="get">
-          <input
-            type="text"
-            name="search"
-            placeholder="Search students..."
-            class="search-bar"
-            value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>"
-          >
-          <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        </form>
+        <!-- Invisible placeholder to preserve spacing -->
+        <div class="search-container" style="visibility:hidden;"></div>
 
         <div class="profile-section">
-          <img src="images/ProfileImg.png" alt="Admin Avatar" class="avatar">
-          <span class="profile-name">System Administrator</span>
-          <i class="fa-solid fa-chevron-down dropdown-icon"></i>
+          <img src="<?php echo $avatar; ?>" class="avatar">
+          <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
         </div>
       </header>
 
@@ -207,27 +208,26 @@ while ($u = $userRes->fetch_assoc()) {
         <p class="semester-text">Manage academic details for all students.</p>
 
         <div class="student-toolbar">
-    <form method="get">
-        <input
-            type="text"
-            name="search"
-            placeholder="Search by ID, name, program, email..."
-            value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>"
-        >
-        <button type="submit">
-            <i class="fa-solid fa-magnifying-glass"></i>
-        </button>
+          <form method="get">
+            <input
+              type="text"
+              name="search"
+              placeholder="Search by ID, name, program, email..."
+              value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>"
+            >
+            <button type="submit">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
 
-        <?php if ($search !== ''): ?>
-            <a href="students_admin.php" class="clear-link">Clear</a>
-        <?php endif; ?>
-    </form>
+            <?php if ($search !== ''): ?>
+              <a href="students_admin.php" class="clear-link">Clear</a>
+            <?php endif; ?>
+          </form>
 
-    <button id="addStudentBtn">
-        <i class="fa-solid fa-user-plus"></i> Add Student Info
-    </button>
-</div>
-
+          <button id="addStudentBtn">
+            <i class="fa-solid fa-user-plus"></i> Add Student Info
+          </button>
+        </div>
 
         <!-- Students Table -->
         <div class="table-wrapper">
@@ -246,9 +246,7 @@ while ($u = $userRes->fetch_assoc()) {
             <tbody>
             <?php if (empty($students)): ?>
               <tr>
-                <td colspan="7" style="text-align:center;padding:18px;color:#555;">
-                  No students found.
-                </td>
+                <td colspan="7" style="text-align:center;">No students found.</td>
               </tr>
             <?php else: ?>
               <?php foreach ($students as $st): ?>
@@ -314,16 +312,36 @@ while ($u = $userRes->fetch_assoc()) {
         </select>
 
         <label>Student ID</label>
-        <input type="text" id="studentIdInput" name="student_id" placeholder="e.g. 2025-001">
+        <input
+          type="text"
+          id="studentIdInput"
+          name="student_id"
+          placeholder="e.g. 2025-001"
+        >
 
         <label>Program</label>
-        <input type="text" id="programInput" name="program" placeholder="e.g. Computer Science">
+        <input
+          type="text"
+          id="programInput"
+          name="program"
+          placeholder="e.g. Computer Science"
+        >
 
         <label>Year Level</label>
-        <input type="text" id="yearInput" name="year_level" placeholder="e.g. 1, 2, 3, 4">
+        <input
+          type="text"
+          id="yearInput"
+          name="year_level"
+          placeholder="e.g. 1, 2, 3, 4"
+        >
 
         <label>Section</label>
-        <input type="text" id="sectionInput" name="section" placeholder="e.g. BSIT3A">
+        <input
+          type="text"
+          id="sectionInput"
+          name="section"
+          placeholder="e.g. BSIT3A"
+        >
 
         <div class="button-group">
           <button type="submit" class="save-btn">Save</button>
@@ -386,98 +404,125 @@ while ($u = $userRes->fetch_assoc()) {
   </div>
 
   <script>
-    const studentModal        = document.getElementById("studentModal");
-    const studentDeleteModal  = document.getElementById("studentDeleteModal");
+  document.addEventListener("DOMContentLoaded", function () {
+    const studentModal       = document.getElementById("studentModal");
+    const studentDeleteModal = document.getElementById("studentDeleteModal");
 
-    const studentUserSelect   = document.getElementById("studentUserSelect");
-    const studentUserIdHidden = document.getElementById("studentUserId");
+    const addBtn             = document.getElementById("addStudentBtn");
+    const studentUserSelect  = document.getElementById("studentUserSelect");
+    const studentUserIdHidden= document.getElementById("studentUserId");
 
-    const studentIdInput      = document.getElementById("studentIdInput");
-    const programInput        = document.getElementById("programInput");
-    const yearInput           = document.getElementById("yearInput");
-    const sectionInput        = document.getElementById("sectionInput");
+    const studentIdInput     = document.getElementById("studentIdInput");
+    const programInput       = document.getElementById("programInput");
+    const yearInput          = document.getElementById("yearInput");
+    const sectionInput       = document.getElementById("sectionInput");
 
-    // Open "Add" modal
-    document.getElementById("addStudentBtn").addEventListener("click", () => {
-      document.getElementById("studentModalTitle").textContent = "Add Student Info";
+    const modalClose         = document.getElementById("studentModalClose");
+    const modalCancel        = document.getElementById("studentModalCancel");
+    const deleteCancel       = document.getElementById("studentDeleteCancel");
 
-      studentUserSelect.disabled = false;
-      studentUserSelect.value = "";
-      studentUserIdHidden.value = "";
+    // Open "Add Student" modal
+    if (addBtn && studentModal) {
+      addBtn.addEventListener("click", () => {
+        document.getElementById("studentModalTitle").textContent = "Add Student Info";
 
-      studentIdInput.value = "";
-      programInput.value   = "";
-      yearInput.value      = "";
-      sectionInput.value   = "";
+        if (studentUserSelect) {
+          studentUserSelect.disabled = false;
+          studentUserSelect.value = "";
+        }
+        if (studentUserIdHidden) studentUserIdHidden.value = "";
 
-      studentModal.style.display = "flex";
-    });
+        if (studentIdInput) studentIdInput.value = "";
+        if (programInput)  programInput.value  = "";
+        if (yearInput)     yearInput.value     = "";
+        if (sectionInput)  sectionInput.value  = "";
 
-    // Link select -> hidden user_id
-    studentUserSelect.addEventListener("change", function () {
-      studentUserIdHidden.value = this.value;
-    });
+        studentModal.style.display = "flex";
+      });
+    }
 
-    // Edit existing / or create if missing
+    // Sync dropdown -> hidden input
+    if (studentUserSelect && studentUserIdHidden) {
+      studentUserSelect.addEventListener("change", function () {
+        studentUserIdHidden.value = this.value;
+      });
+    }
+
+    // Edit buttons
     document.querySelectorAll(".student-edit-btn").forEach(btn => {
       btn.addEventListener("click", () => {
-        const uid      = btn.dataset.userId;
-        const name     = btn.dataset.name || "";
-        const sid      = btn.dataset.studentId || "";
-        const prog     = btn.dataset.program   || "";
-        const year     = btn.dataset.year      || "";
-        const section  = btn.dataset.section   || "";
+        if (!studentModal) return;
+
+        const uid     = btn.dataset.userId;
+        const name    = btn.dataset.name || "";
+        const sid     = btn.dataset.studentId || "";
+        const prog    = btn.dataset.program || "";
+        const year    = btn.dataset.year || "";
+        const section = btn.dataset.section || "";
 
         document.getElementById("studentModalTitle").textContent =
           "Edit Student Info – " + name;
 
-        studentUserIdHidden.value = uid;
-        studentUserSelect.value   = uid;
-        studentUserSelect.disabled = true;
+        if (studentUserIdHidden) studentUserIdHidden.value = uid;
+        if (studentUserSelect) {
+          studentUserSelect.value = uid;
+          studentUserSelect.disabled = true;
+        }
 
-        studentIdInput.value = sid;
-        programInput.value   = prog;
-        yearInput.value      = year;
-        sectionInput.value   = section;
+        if (studentIdInput) studentIdInput.value = sid;
+        if (programInput)  programInput.value  = prog;
+        if (yearInput)     yearInput.value     = year;
+        if (sectionInput)  sectionInput.value  = section;
 
         studentModal.style.display = "flex";
       });
     });
 
-    // Delete academic info
+    // Delete buttons
     document.querySelectorAll(".student-delete-btn").forEach(btn => {
       btn.addEventListener("click", () => {
+        if (!studentDeleteModal) return;
+
         const uid  = btn.dataset.userId;
         const name = btn.dataset.name || "";
 
-        document.getElementById("deleteStudentUserId").value = uid;
-        document.getElementById("deleteStudentText").textContent =
+        const deleteUserId = document.getElementById("deleteStudentUserId");
+        const deleteText   = document.getElementById("deleteStudentText");
+
+        if (deleteUserId) deleteUserId.value = uid;
+        if (deleteText) deleteText.textContent =
           'Delete academic details for "' + name + '"?';
 
         studentDeleteModal.style.display = "flex";
       });
     });
 
-    // Close modals
-    document.getElementById("studentModalClose").onclick =
-    document.getElementById("studentModalCancel").onclick = function () {
-      studentModal.style.display = "none";
-      studentUserSelect.disabled = false;
+    // Close Add/Edit modal
+    const closeStudentModal = () => {
+      if (studentModal) studentModal.style.display = "none";
+      if (studentUserSelect) studentUserSelect.disabled = false;
     };
 
-    document.getElementById("studentDeleteCancel").onclick = function () {
-      studentDeleteModal.style.display = "none";
-    };
+    if (modalClose)  modalClose.onclick  = closeStudentModal;
+    if (modalCancel) modalCancel.onclick = closeStudentModal;
 
-    window.onclick = function (e) {
+    // Close Delete modal
+    if (deleteCancel && studentDeleteModal) {
+      deleteCancel.onclick = () => {
+        studentDeleteModal.style.display = "none";
+      };
+    }
+
+    // Close on backdrop click
+    window.addEventListener("click", (e) => {
       if (e.target === studentModal) {
-        studentModal.style.display = "none";
-        studentUserSelect.disabled = false;
+        closeStudentModal();
       }
       if (e.target === studentDeleteModal) {
         studentDeleteModal.style.display = "none";
       }
-    };
+    });
+  });
   </script>
 </body>
 </html>
