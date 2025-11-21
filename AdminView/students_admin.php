@@ -18,7 +18,6 @@ if ($stmtP->fetch() && !empty($profile_pic)) {
 }
 $stmtP->close();
 
-
 // ---------- SMALL HELPER ----------
 function build_query(array $overrides = []): string {
     $params = $_GET;
@@ -33,7 +32,6 @@ function build_query(array $overrides = []): string {
     return $query ? ('?' . $query) : '';
 }
 
-
 // ---------- HANDLE POST (ADD / EDIT / DELETE) ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -43,10 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $student_id = trim($_POST['student_id'] ?? '');
         $program    = trim($_POST['program'] ?? '');
         $year_level = trim($_POST['year_level'] ?? '');
-        $section    = trim($_POST['section'] ?? '');
 
         if ($user_id > 0) {
-            // Check if exists
+            // Check if record already exists
             $stmt = $conn->prepare("SELECT id FROM student_info WHERE user_id = ?");
             $stmt->bind_param("i", $user_id);
             $stmt->execute();
@@ -55,18 +52,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
 
             if ($exists) {
+                // UPDATE — do NOT touch section column anymore
                 $stmt = $conn->prepare("
                     UPDATE student_info
-                    SET student_id = ?, program = ?, year_level = ?, section = ?
+                    SET student_id = ?, program = ?, year_level = ?
                     WHERE user_id = ?
                 ");
-                $stmt->bind_param("ssssi", $student_id, $program, $year_level, $section, $user_id);
+                $stmt->bind_param("sssi", $student_id, $program, $year_level, $user_id);
             } else {
+                // INSERT — section left to its default (NULL)
                 $stmt = $conn->prepare("
-                    INSERT INTO student_info (user_id, student_id, program, year_level, section)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO student_info (user_id, student_id, program, year_level)
+                    VALUES (?, ?, ?, ?)
                 ");
-                $stmt->bind_param("issss", $user_id, $student_id, $program, $year_level, $section);
+                $stmt->bind_param("isss", $user_id, $student_id, $program, $year_level);
             }
 
             $stmt->execute();
@@ -91,11 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-
 // ---------- SEARCH / PAGINATION ----------
 $search = trim($_GET['search'] ?? '');
 
-// Base WHERE
+// Base WHERE: only student users
 $where  = "u.role = 'student'";
 $params = [];
 $types  = '';
@@ -106,19 +104,17 @@ if ($search !== '') {
         u.full_name LIKE ? OR
         COALESCE(s.program, '') LIKE ? OR
         COALESCE(s.year_level, '') LIKE ? OR
-        COALESCE(s.section, '') LIKE ? OR
         u.email LIKE ?
     )";
     $like   = '%' . $search . '%';
-    $params = array_fill(0, 6, $like);
-    $types  = 'ssssss';
+    $params = [$like, $like, $like, $like, $like];
+    $types  = 'sssss';
 }
 
 // Pagination setup
 $perPage = 10;
 $page    = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset  = ($page - 1) * $perPage;
-
 
 // Count
 $countSql = "
@@ -137,7 +133,6 @@ $stmt->close();
 
 $totalPages = max(1, ceil($total / $perPage));
 
-
 // Fetch data
 $dataSql = "
     SELECT
@@ -147,8 +142,7 @@ $dataSql = "
         u.created_at,
         s.student_id,
         s.program,
-        s.year_level,
-        s.section
+        s.year_level
     FROM users u
     LEFT JOIN student_info s ON u.user_id = s.user_id
     WHERE $where
@@ -171,10 +165,19 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
+// Student users list (for dropdown)
+$userSql      = "SELECT user_id, full_name FROM users WHERE role = 'student' ORDER BY created_at DESC";
+$studentUsers = $conn->query($userSql)->fetch_all(MYSQLI_ASSOC);
 
-// Student users list
-$userSql       = "SELECT user_id, full_name FROM users WHERE role = 'student' ORDER BY created_at DESC";
-$studentUsers  = $conn->query($userSql)->fetch_all(MYSQLI_ASSOC);
+// Programs list (for Program dropdown)
+$programSql   = "SELECT program_name FROM programs ORDER BY program_name ASC";
+$programRes   = $conn->query($programSql);
+$programs     = [];
+if ($programRes) {
+    while ($pr = $programRes->fetch_assoc()) {
+        $programs[] = $pr['program_name'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -238,7 +241,6 @@ $studentUsers  = $conn->query($userSql)->fetch_all(MYSQLI_ASSOC);
                 <th>Name</th>
                 <th>Program</th>
                 <th>Year</th>
-                <th>Section</th>
                 <th>Email</th>
                 <th>Actions</th>
               </tr>
@@ -246,7 +248,7 @@ $studentUsers  = $conn->query($userSql)->fetch_all(MYSQLI_ASSOC);
             <tbody>
             <?php if (empty($students)): ?>
               <tr>
-                <td colspan="7" style="text-align:center;">No students found.</td>
+                <td colspan="6" style="text-align:center;">No students found.</td>
               </tr>
             <?php else: ?>
               <?php foreach ($students as $st): ?>
@@ -255,7 +257,6 @@ $studentUsers  = $conn->query($userSql)->fetch_all(MYSQLI_ASSOC);
                   <td><?php echo htmlspecialchars($st['full_name']); ?></td>
                   <td><?php echo htmlspecialchars($st['program'] ?? '—'); ?></td>
                   <td><?php echo htmlspecialchars($st['year_level'] ?? '—'); ?></td>
-                  <td><?php echo htmlspecialchars($st['section'] ?? '—'); ?></td>
                   <td><?php echo htmlspecialchars($st['email']); ?></td>
                   <td>
                     <button
@@ -264,7 +265,6 @@ $studentUsers  = $conn->query($userSql)->fetch_all(MYSQLI_ASSOC);
                       data-student-id="<?php echo htmlspecialchars($st['student_id'] ?? '', ENT_QUOTES); ?>"
                       data-program="<?php echo htmlspecialchars($st['program'] ?? '', ENT_QUOTES); ?>"
                       data-year="<?php echo htmlspecialchars($st['year_level'] ?? '', ENT_QUOTES); ?>"
-                      data-section="<?php echo htmlspecialchars($st['section'] ?? '', ENT_QUOTES); ?>"
                       data-name="<?php echo htmlspecialchars($st['full_name'], ENT_QUOTES); ?>"
                     >
                       <i class="fa-solid fa-pen"></i>
@@ -320,27 +320,24 @@ $studentUsers  = $conn->query($userSql)->fetch_all(MYSQLI_ASSOC);
         >
 
         <label>Program</label>
-        <input
-          type="text"
-          id="programInput"
-          name="program"
-          placeholder="e.g. Computer Science"
-        >
+        <select id="programSelect" name="program">
+          <option value="">-- Select program --</option>
+          <?php foreach ($programs as $progName): ?>
+            <option value="<?php echo htmlspecialchars($progName, ENT_QUOTES); ?>">
+              <?php echo htmlspecialchars($progName); ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
 
         <label>Year Level</label>
         <input
-          type="text"
+          type="number"
           id="yearInput"
           name="year_level"
-          placeholder="e.g. 1, 2, 3, 4"
-        >
-
-        <label>Section</label>
-        <input
-          type="text"
-          id="sectionInput"
-          name="section"
-          placeholder="e.g. BSIT3A"
+          min="1"
+          max="6"
+          step="1"
+          placeholder="Year level (1-6)"
         >
 
         <div class="button-group">
@@ -405,21 +402,20 @@ $studentUsers  = $conn->query($userSql)->fetch_all(MYSQLI_ASSOC);
 
   <script>
   document.addEventListener("DOMContentLoaded", function () {
-    const studentModal       = document.getElementById("studentModal");
-    const studentDeleteModal = document.getElementById("studentDeleteModal");
+    const studentModal        = document.getElementById("studentModal");
+    const studentDeleteModal  = document.getElementById("studentDeleteModal");
 
-    const addBtn             = document.getElementById("addStudentBtn");
-    const studentUserSelect  = document.getElementById("studentUserSelect");
-    const studentUserIdHidden= document.getElementById("studentUserId");
+    const addBtn              = document.getElementById("addStudentBtn");
+    const studentUserSelect   = document.getElementById("studentUserSelect");
+    const studentUserIdHidden = document.getElementById("studentUserId");
 
-    const studentIdInput     = document.getElementById("studentIdInput");
-    const programInput       = document.getElementById("programInput");
-    const yearInput          = document.getElementById("yearInput");
-    const sectionInput       = document.getElementById("sectionInput");
+    const studentIdInput      = document.getElementById("studentIdInput");
+    const programSelect       = document.getElementById("programSelect");
+    const yearInput           = document.getElementById("yearInput");
 
-    const modalClose         = document.getElementById("studentModalClose");
-    const modalCancel        = document.getElementById("studentModalCancel");
-    const deleteCancel       = document.getElementById("studentDeleteCancel");
+    const modalClose          = document.getElementById("studentModalClose");
+    const modalCancel         = document.getElementById("studentModalCancel");
+    const deleteCancel        = document.getElementById("studentDeleteCancel");
 
     // Open "Add Student" modal
     if (addBtn && studentModal) {
@@ -433,9 +429,8 @@ $studentUsers  = $conn->query($userSql)->fetch_all(MYSQLI_ASSOC);
         if (studentUserIdHidden) studentUserIdHidden.value = "";
 
         if (studentIdInput) studentIdInput.value = "";
-        if (programInput)  programInput.value  = "";
-        if (yearInput)     yearInput.value     = "";
-        if (sectionInput)  sectionInput.value  = "";
+        if (programSelect)  programSelect.value  = "";
+        if (yearInput)      yearInput.value      = "";
 
         studentModal.style.display = "flex";
       });
@@ -458,7 +453,6 @@ $studentUsers  = $conn->query($userSql)->fetch_all(MYSQLI_ASSOC);
         const sid     = btn.dataset.studentId || "";
         const prog    = btn.dataset.program || "";
         const year    = btn.dataset.year || "";
-        const section = btn.dataset.section || "";
 
         document.getElementById("studentModalTitle").textContent =
           "Edit Student Info – " + name;
@@ -470,9 +464,8 @@ $studentUsers  = $conn->query($userSql)->fetch_all(MYSQLI_ASSOC);
         }
 
         if (studentIdInput) studentIdInput.value = sid;
-        if (programInput)  programInput.value  = prog;
-        if (yearInput)     yearInput.value     = year;
-        if (sectionInput)  sectionInput.value  = section;
+        if (programSelect)  programSelect.value  = prog;
+        if (yearInput)      yearInput.value      = year;
 
         studentModal.style.display = "flex";
       });
