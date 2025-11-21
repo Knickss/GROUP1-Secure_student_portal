@@ -2,6 +2,7 @@
 include("../includes/auth_session.php");
 include("../includes/auth_admin.php"); 
 include("../config/db_connect.php");
+include("../includes/logging.php"); // <-- ADDED
 
 // ================== FETCH LOGGED-IN USER HEADER INFO ==================
 $user_id   = $_SESSION['user_id'];
@@ -38,21 +39,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ---- ADD USER ----
     if ($action === 'add_user') {
-        $full_name = trim($_POST['full_name']);
-        $email     = trim($_POST['email']);
-        $username  = trim($_POST['username']);
-        $role      = trim($_POST['role']);
-        $password  = $_POST['password'];
+        $full_name_new = trim($_POST['full_name']);
+        $email         = trim($_POST['email']);
+        $username_new  = trim($_POST['username']);
+        $role_new      = trim($_POST['role']);
+        $password      = $_POST['password'];
 
-        if ($full_name && $email && $username && $password && $role) {
+        if ($full_name_new && $email && $username_new && $password && $role_new) {
             $hash = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $conn->prepare("
                 INSERT INTO users (username, password, full_name, email, role, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, NOW(), NOW())
             ");
-            $stmt->bind_param("sssss", $username, $hash, $full_name, $email, $role);
+            $stmt->bind_param("sssss", $username_new, $hash, $full_name_new, $email, $role_new);
             $stmt->execute();
             $stmt->close();
+
+            // LOG: Created user
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Created User",
+                "Created user '{$full_name_new}' (username: {$username_new}, role: {$role_new}).",
+                "success"
+            );
         }
 
         header("Location: users_admin.php");
@@ -61,31 +71,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ---- EDIT USER ----
     if ($action === 'edit_user') {
-        $uid       = (int)$_POST['user_id'];
-        $full_name = trim($_POST['edit_full_name']);
-        $email     = trim($_POST['edit_email']);
-        $username  = trim($_POST['edit_username']);
-        $role      = trim($_POST['edit_role']);
-        $new_pass  = $_POST['edit_password'];
+        $uid            = (int)$_POST['user_id'];
+        $edit_full_name = trim($_POST['edit_full_name']);
+        $edit_email     = trim($_POST['edit_email']);
+        $edit_username  = trim($_POST['edit_username']);
+        $edit_role      = trim($_POST['edit_role']);
+        $new_pass       = $_POST['edit_password'];
 
-        if ($uid > 0 && $full_name && $email && $username && $role) {
+        if ($uid > 0 && $edit_full_name && $edit_email && $edit_username && $edit_role) {
             if ($new_pass !== "") {
                 $hash = password_hash($new_pass, PASSWORD_DEFAULT);
                 $stmt = $conn->prepare("
                     UPDATE users SET username=?, full_name=?, email=?, role=?, password=?, updated_at=NOW()
                     WHERE user_id=?
                 ");
-                $stmt->bind_param("sssssi", $username, $full_name, $email, $role, $hash, $uid);
+                $stmt->bind_param("sssssi", $edit_username, $edit_full_name, $edit_email, $edit_role, $hash, $uid);
             } else {
                 $stmt = $conn->prepare("
                     UPDATE users SET username=?, full_name=?, email=?, role=?, updated_at=NOW()
                     WHERE user_id=?
                 ");
-                $stmt->bind_param("ssssi", $username, $full_name, $email, $role, $uid);
+                $stmt->bind_param("ssssi", $edit_username, $edit_full_name, $edit_email, $edit_role, $uid);
             }
 
             $stmt->execute();
             $stmt->close();
+
+            // LOG: Edited user
+            $detail_msg = "Edited user ID {$uid} ({$edit_full_name}, username: {$edit_username}, role: {$edit_role})";
+            if ($new_pass !== "") {
+                $detail_msg .= " with password change.";
+            } else {
+                $detail_msg .= " without password change.";
+            }
+
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Edited User",
+                $detail_msg,
+                "success"
+            );
         }
 
         header("Location: users_admin.php");
@@ -97,9 +123,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $uid = (int)$_POST['user_id'];
 
         if ($uid > 0) {
+            // Best-effort delete of linked info + user
             $conn->query("DELETE FROM student_info WHERE user_id=$uid");
             $conn->query("DELETE FROM teacher_info WHERE user_id=$uid");
             $conn->query("DELETE FROM users WHERE user_id=$uid");
+
+            // LOG: Deleted user
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Deleted User",
+                "Deleted user ID {$uid} and any linked academic info.",
+                "success"
+            );
         }
 
         header("Location: users_admin.php");
