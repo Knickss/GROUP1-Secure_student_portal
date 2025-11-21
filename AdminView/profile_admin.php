@@ -2,6 +2,7 @@
 include("../includes/auth_session.php");
 include("../includes/auth_admin.php"); 
 include("../config/db_connect.php");
+include("../includes/logging.php"); // <-- ADDED
 
 $user_id = $_SESSION['user_id'];
 
@@ -32,19 +33,20 @@ $username    = $user['username']       ?? '';
 $full_name   = $user['full_name']      ?? '';
 $email       = $user['email']          ?? '';
 $profile_pic = $user['profile_pic']    ?? '';
-$department  = "Administration"; // Admins do not have department assignments
+$department  = "Administration";
 
 $error   = '';
 $success = '';
 
 /* ==========================
-   UPDATE PROFILE
+   UPDATE PROFILE  (LOGGING ADDED)
 ========================== */
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_profile"])) {
     $new_name  = trim($_POST["full_name"]);
     $new_email = trim($_POST["email"]);
     $new_pfp   = $profile_pic;
 
+    // --- upload new profile picture ---
     if (!empty($_FILES['profile_image']['name'])) {
         $target_dir = "../uploads/";
         if (!is_dir($target_dir)) mkdir($target_dir, 0775, true);
@@ -65,6 +67,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_profile"])) {
         }
     }
 
+    // --- update DB ---
     $stmt = $conn->prepare("
         UPDATE users SET full_name=?, email=?, profile_pic=? WHERE user_id=?
     ");
@@ -72,13 +75,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_profile"])) {
     $stmt->execute();
     $stmt->close();
 
+    // update session
     $_SESSION['full_name'] = $new_name;
+
+    // --- LOG PROFILE UPDATE ---
+    log_activity(
+        $conn,
+        (int)$user_id,
+        "Updated Profile",
+        "Updated profile details (Name: {$new_name}, Email: {$new_email}, Profile Pic: {$new_pfp}).",
+        "success"
+    );
+
     header("Location: profile_admin.php?updated=1");
     exit;
 }
 
 /* ==========================
-   PASSWORD CHANGE
+   PASSWORD CHANGE  (LOGGING ADDED)
 ========================== */
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["change_password"])) {
     $current = $_POST["current_password"] ?? '';
@@ -108,7 +122,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["change_password"])) {
         $stmt->bind_param("si", $new_hash, $user_id);
         $stmt->execute();
         $stmt->close();
+
         $success = "Password updated successfully.";
+
+        // --- LOG PASSWORD CHANGE ---
+        log_activity(
+            $conn,
+            (int)$user_id,
+            "Changed Password",
+            "Admin changed their account password.",
+            "success"
+        );
     }
 }
 
