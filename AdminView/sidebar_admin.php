@@ -112,7 +112,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
   logoutCancel.onclick = () => logoutModal.style.display = 'none';
 
   logoutConfirm.onclick = () => {
-    window.location.href = "../LoginPage/login.php";
+    window.location.href = "../logout.php";
   };
 
   window.onclick = (e) => {

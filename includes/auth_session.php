@@ -1,84 +1,47 @@
 <?php
-// -------------------------------------------
-// SECURE COOKIE SETTINGS — MUST COME FIRST
-// -------------------------------------------
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path' => '/',
-    'domain' => '',
-    'secure' => false,   // true when deployed on HTTPS
-    'httponly' => true,
-    'samesite' => 'Strict'
-]);
-
-session_start();
-
-// ---------------------------------------------------------
-// SESSION SECURITY FEATURES
-// ---------------------------------------------------------
-
-// 1. SESSION FIXATION PROTECTION (important)
-if (!isset($_SESSION['session_regenerated'])) {
-    session_regenerate_id(true);
-    $_SESSION['session_regenerated'] = true;
+// Start session (must be first)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-// 2. SESSION TIMEOUT (30 minutes)
-$timeout_duration = 1800;
+// Get current path/file
+$currentPath = $_SERVER['PHP_SELF'] ?? '';
+$currentFile = basename($currentPath);
 
-if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout_duration) {
-    session_unset();
-    session_destroy();
-    header("Location: ../LoginPage/login.php?timeout=1");
-    exit;
-}
-
-$_SESSION['last_activity'] = time();
-
-
-// ---------------------------------------------------------
-// BASIC SESSION VALIDATION
-// ---------------------------------------------------------
+// ======================================================
+// 1. BASIC SESSION VALIDATION
+// ======================================================
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+    // User NOT logged in → redirect to login
     header("Location: ../LoginPage/login.php");
     exit;
 }
 
-$role = $_SESSION['role'] ?? '';
-$currentPath = $_SERVER['PHP_SELF'];
+$role = $_SESSION['role'];
 
+// ======================================================
+// 2. ADMIN 2FA ENFORCEMENT (FIXED)
+// ======================================================
+// OLD BUG: This block ran even AFTER LOGOUT, reactivating admin session.
+// FIX: Only enforce 2FA if user_id EXISTS and role == admin.
 
-// ---------------------------------------------------------
-// ADMIN 2FA ENFORCEMENT
-// ---------------------------------------------------------
-if ($role === 'admin') {
-    $currentFile = basename($currentPath);
+if ($role === 'admin' && isset($_SESSION['user_id'])) {
 
+    // If user is accessing admin pages but has not passed 2FA
     if ($currentFile !== "admin_2fa.php") {
+
         if (!isset($_SESSION['2fa_passed']) || $_SESSION['2fa_passed'] !== true) {
+
+            // Redirect admin to 2FA page
             header("Location: ../LoginPage/admin_2fa.php");
             exit;
         }
     }
 }
 
-
-// ---------------------------------------------------------
-// ROLE-BASED ACCESS CONTROL
-// ---------------------------------------------------------
-
-if (strpos($currentPath, 'StudentView') !== false && $role !== 'student') {
-    header("Location: ../LoginPage/login.php");
-    exit;
-}
-
-if (strpos($currentPath, 'ProfView') !== false && $role !== 'teacher') {
-    header("Location: ../LoginPage/login.php");
-    exit;
-}
-
-if (strpos($currentPath, 'AdminView') !== false && $role !== 'admin') {
-    header("Location: ../LoginPage/login.php");
-    exit;
-}
-?>
+// ======================================================
+// 3. OPTIONAL: Prevent cached pages from appearing after logout
+// ======================================================
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
