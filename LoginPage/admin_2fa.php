@@ -16,6 +16,7 @@ session_start();
 require_once __DIR__ . "/../config/db_connect.php";
 require_once __DIR__ . "/../includes/security.php";
 require_once __DIR__ . "/../includes/mail_otp.php";
+require_once __DIR__ . "/../includes/logging.php";   // <-- ADDED
 
 // User must be logged in AND role must be admin
 if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
@@ -38,21 +39,40 @@ $info  = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
+    $uid = (int)($_SESSION['user_id'] ?? 0);
+
     // ---------- VERIFY OTP ----------
     if (isset($_POST["verify_otp"])) {
         $entered = clean($_POST["otp"] ?? "");
 
         if ($entered === "") {
             $error = "Please enter the code.";
+
         } elseif (!isset($_SESSION['otp_code'], $_SESSION['otp_expires'])) {
             $error = "No active code. Please request a new one.";
+
+            // log: no OTP available
+            log_activity($conn, $uid, "Admin 2FA Failed", "No active OTP found.", "failed");
+
         } elseif (time() > (int)$_SESSION['otp_expires']) {
             $error = "Code has expired. Please request a new one.";
+
+            // log: expired OTP
+            log_activity($conn, $uid, "Admin 2FA Expired", "OTP expired before verification.", "failed");
+
         } elseif ($entered !== $_SESSION['otp_code']) {
             $error = "Invalid code. Please try again.";
+
+            // log: wrong OTP
+            log_activity($conn, $uid, "Admin 2FA Failed", "Wrong OTP entered.", "failed");
+
         } else {
+            // SUCCESS
             $_SESSION['2fa_passed'] = true;
             unset($_SESSION['otp_code'], $_SESSION['otp_expires']);
+
+            // log: correct OTP
+            log_activity($conn, $uid, "Admin 2FA Verified", "Correct OTP entered.", "success");
 
             header("Location: ../AdminView/dashboard_admin.php");
             exit;
@@ -61,6 +81,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     // ---------- RESEND OTP ----------
     if (isset($_POST["resend_otp"])) {
+
         $otp = (string)rand(100000, 999999);
         $_SESSION['otp_code']    = $otp;
         $_SESSION['otp_expires'] = time() + 300;
@@ -76,11 +97,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $safeName  = $full_name ?: "Administrator";
 
         send_otp_email($safeEmail, $safeName, $otp);
+
         $info = "A new verification code has been sent.";
+
+        // log: OTP resent
+        log_activity($conn, $uid, "Admin 2FA Resent", "A new OTP was generated and emailed.", "success");
     }
 
     // ---------- CANCEL LOGIN ----------
     if (isset($_POST["cancel_login"])) {
+
+        // log: cancelled login
+        log_activity($conn, $uid, "Admin 2FA Cancelled", "User cancelled during 2FA.", "failed");
+
         session_unset();
         session_destroy();
         header("Location: login.php");
