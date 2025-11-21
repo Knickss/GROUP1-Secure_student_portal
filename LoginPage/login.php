@@ -1,13 +1,17 @@
 <?php
 // -------------------------------------------
-// SECURE COOKIE SETTINGS — MUST COME FIRST
+// SECURE COOKIE SETTINGS — AUTO-DETECT HTTPS
+// MUST COME BEFORE session_start()
 // -------------------------------------------
+$isHTTPS = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+           || $_SERVER['SERVER_PORT'] == 443;
+
 session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',
     'domain' => '',
-    'secure' => false,   // set to true when deployed with HTTPS
-    'httponly' => true,
+    'secure' => $isHTTPS,  // automatically TRUE on HTTPS, FALSE on localhost
+    'httponly' => true,    // ALWAYS TRUE for security
     'samesite' => 'Strict'
 ]);
 
