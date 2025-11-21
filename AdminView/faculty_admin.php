@@ -2,6 +2,7 @@
 include("../includes/auth_session.php");
 include("../includes/auth_admin.php"); 
 include("../config/db_connect.php");
+include("../includes/logging.php"); // <-- ADDED
 
 /* ============================
    ADMIN PROFILE (Topbar Sync)
@@ -39,52 +40,87 @@ function build_query(array $overrides = []): string {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
+    /* ================= SAVE FACULTY (Insert or Update) ================= */
     if ($action === 'save_faculty') {
-        $user_id       = (int)($_POST['user_id'] ?? 0);
-        $teacher_id    = trim($_POST['teacher_id'] ?? '');
-        $department_id = ($_POST['department_id'] !== '') ? (int)$_POST['department_id'] : null;
+        $target_user_id = (int)($_POST['user_id'] ?? 0);
+        $teacher_id     = trim($_POST['teacher_id'] ?? '');
+        $department_id  = ($_POST['department_id'] !== '') ? (int)$_POST['department_id'] : null;
 
-        if ($user_id > 0) {
+        if ($target_user_id > 0) {
 
-            // Check if record exists
+            // Check if teacher_info record exists
             $stmt = $conn->prepare("SELECT id FROM teacher_info WHERE user_id = ?");
-            $stmt->bind_param("i", $user_id);
+            $stmt->bind_param("i", $target_user_id);
             $stmt->execute();
             $stmt->bind_result($id);
             $exists = $stmt->fetch();
             $stmt->close();
 
             if ($exists) {
+
+                /* UPDATE */
                 $stmt = $conn->prepare("
                     UPDATE teacher_info
                     SET teacher_id = ?, department_id = ?
                     WHERE user_id = ?
                 ");
-                $stmt->bind_param("sii", $teacher_id, $department_id, $user_id);
+                $stmt->bind_param("sii", $teacher_id, $department_id, $target_user_id);
+                $stmt->execute();
+                $stmt->close();
+
+                /* LOG UPDATE */
+                log_activity(
+                    $conn,
+                    (int)$user_id,
+                    "Updated Faculty Info",
+                    "Updated faculty info for user_id {$target_user_id} (Teacher ID: {$teacher_id}, Department ID: {$department_id}).",
+                    "success"
+                );
+
             } else {
+
+                /* INSERT */
                 $stmt = $conn->prepare("
                     INSERT INTO teacher_info (user_id, teacher_id, department_id)
                     VALUES (?, ?, ?)
                 ");
-                $stmt->bind_param("isi", $user_id, $teacher_id, $department_id);
-            }
+                $stmt->bind_param("isi", $target_user_id, $teacher_id, $department_id);
+                $stmt->execute();
+                $stmt->close();
 
-            $stmt->execute();
-            $stmt->close();
+                /* LOG INSERT */
+                log_activity(
+                    $conn,
+                    (int)$user_id,
+                    "Added Faculty Info",
+                    "Created faculty info for user_id {$target_user_id} (Teacher ID: {$teacher_id}, Department ID: {$department_id}).",
+                    "success"
+                );
+            }
         }
 
         header("Location: faculty_admin.php" . build_query(['page' => null]));
         exit;
     }
 
+    /* ================= DELETE FACULTY ================= */
     elseif ($action === 'delete_faculty') {
-        $user_id = (int)($_POST['user_id'] ?? 0);
+        $target_user_id = (int)($_POST['user_id'] ?? 0);
 
-        if ($user_id > 0) {
+        if ($target_user_id > 0) {
             $stmt = $conn->prepare("DELETE FROM teacher_info WHERE user_id = ?");
-            $stmt->bind_param("i", $user_id);
+            $stmt->bind_param("i", $target_user_id);
             $stmt->execute();
             $stmt->close();
+
+            /* LOG DELETE */
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Deleted Faculty Info",
+                "Removed faculty info for user_id {$target_user_id}.",
+                "success"
+            );
         }
 
         header("Location: faculty_admin.php" . build_query(['page' => null]));
@@ -153,8 +189,8 @@ $stmt = $conn->prepare($dataSql);
 
 if ($types !== '') {
     $types2 = $types . "ii";
-    $p2 = array_merge($params, [$perPage, $offset]);
-    $stmt->bind_param($types2, ...$p2);
+    $bind   = array_merge($params, [$perPage, $offset]);
+    $stmt->bind_param($types2, ...$bind);
 } else {
     $stmt->bind_param("ii", $perPage, $offset);
 }
@@ -167,7 +203,7 @@ $stmt->close();
 
 // Dropdown data
 $facultyUsers = $conn->query("SELECT user_id, full_name FROM users WHERE role='teacher' ORDER BY created_at DESC")->fetch_all(MYSQLI_ASSOC);
-$departments = $conn->query("SELECT department_id, department_name FROM departments ORDER BY department_name ASC")->fetch_all(MYSQLI_ASSOC);
+$departments  = $conn->query("SELECT department_id, department_name FROM departments ORDER BY department_name ASC")->fetch_all(MYSQLI_ASSOC);
 
 ?>
 <!DOCTYPE html>
@@ -191,7 +227,6 @@ $departments = $conn->query("SELECT department_id, department_name FROM departme
 <!-- ===================== TOPBAR ===================== -->
 <header class="topbar">
 
-    <!-- remove search in top-left -->
     <div class="topbar-left"></div>
 
     <div class="profile-section">
