@@ -180,7 +180,7 @@ if ($course_id > 0) {
 }
 
 /* ---------------------------------------------------------
-   LOAD STUDENTS
+   LOAD STUDENTS (SECTION REMOVED)
 --------------------------------------------------------- */
 $students = [];
 if ($course_id > 0) {
@@ -190,8 +190,7 @@ if ($course_id > 0) {
             u.full_name,
             s.student_id AS academic_id,
             s.program,
-            s.year_level,
-            s.section
+            s.year_level
         FROM users u
         LEFT JOIN student_info s ON u.user_id = s.user_id
         WHERE u.role = 'student'
@@ -206,7 +205,7 @@ if ($course_id > 0) {
                 u.full_name LIKE ?
                 OR COALESCE(s.student_id,'') LIKE ?
                 OR COALESCE(s.program,'') LIKE ?
-                OR COALESCE(s.section,'') LIKE ?
+                OR COALESCE(s.year_level,'') LIKE ?
             )
         ";
         $like = "%" . $student_search . "%";
@@ -225,6 +224,7 @@ if ($course_id > 0) {
     $students = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
 }
+
 
 ?>
 <!DOCTYPE html>
@@ -349,7 +349,6 @@ if ($course_id > 0) {
                 $acadID   = $st["academic_id"] ? htmlspecialchars($st["academic_id"]) : "N/A";
                 $prog     = $st["program"]     ? htmlspecialchars($st["program"]) : "N/A";
                 $year     = $st["year_level"]  ? htmlspecialchars($st["year_level"]) : "N/A";
-                $sec      = $st["section"]     ? htmlspecialchars($st["section"]) : "N/A";
             ?>
 
             <label class="enroll-students-row">
@@ -364,11 +363,11 @@ if ($course_id > 0) {
                         <span class="student-name"><?= $fullName; ?></span>
 
                         <div class="student-meta">
-                            <span><strong>ID:</strong> <?= $acadID; ?></span>
-                            <span><strong>Program:</strong> <?= $prog; ?></span>
-                            <span><strong>Year:</strong> <?= $year; ?></span>
-                            <span><strong>Section:</strong> <?= $sec; ?></span>
-                        </div>
+    <span><strong>ID:</strong> <?= $acadID; ?></span>
+    <span><strong>Program:</strong> <?= $prog; ?></span>
+    <span><strong>Year:</strong> <?= $year; ?></span>
+</div>
+
                     </div>
                 </div>
             </label>
