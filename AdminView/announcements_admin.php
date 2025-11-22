@@ -19,14 +19,10 @@ $avatar = !empty($profile_pic)
     ? "../uploads/" . htmlspecialchars($profile_pic)
     : "images/ProfileImg.png";
 
-/* ============================================================
-   ALLOWED AUDIENCES — FINAL FIX
-============================================================ */
+/* ================= ALLOWED AUDIENCES ================= */
 $validAudiences = ['all', 'students', 'teachers', 'class'];
 
-/* ============================================================
-   CREATE ANNOUNCEMENT
-============================================================ */
+/* ================= CREATE ANNOUNCEMENT ================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create') {
 
     $title    = trim($_POST['title'] ?? '');
@@ -46,9 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
 
         log_activity(
             $conn,
-            (int)$user_id,
+            $user_id,
             "Created Announcement",
-            "Created announcement '{$title}' (ID {$newId}), audience='{$audience}'.",
+            "Created announcement '{$title}' (ID {$newId}).",
             "success"
         );
     }
@@ -57,9 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
     exit;
 }
 
-/* ============================================================
-   EDIT ANNOUNCEMENT
-============================================================ */
+/* ================= EDIT ANNOUNCEMENT ================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit') {
 
     $id       = (int)($_POST['announcement_id'] ?? 0);
@@ -80,9 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit'
 
         log_activity(
             $conn,
-            (int)$user_id,
+            $user_id,
             "Edited Announcement",
-            "Edited announcement '{$title}' (ID {$id}), new audience='{$audience}'.",
+            "Edited announcement '{$title}' (ID {$id}).",
             "success"
         );
     }
@@ -91,15 +85,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'edit'
     exit;
 }
 
-/* ============================================================
-   DELETE ANNOUNCEMENT
-============================================================ */
+/* ================= DELETE ANNOUNCEMENT ================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
-
     $id = (int)($_POST['announcement_id'] ?? 0);
 
     if ($id > 0) {
-
         $stmt = $conn->prepare("SELECT title FROM announcements WHERE announcement_id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
@@ -114,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 
         log_activity(
             $conn,
-            (int)$user_id,
+            $user_id,
             "Deleted Announcement",
             "Deleted announcement '{$delTitle}' (ID {$id}).",
             "success"
@@ -125,9 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
     exit;
 }
 
-/* ============================================================
-   FETCH ALL ANNOUNCEMENTS
-============================================================ */
+/* ================= FETCH ALL ================= */
 $stmt = $conn->prepare("
   SELECT 
       a.announcement_id,
@@ -137,8 +125,7 @@ $stmt = $conn->prepare("
       a.course_id,
       a.date_posted,
       u.full_name AS author_name,
-      c.course_code,
-      c.course_name
+      c.course_code
   FROM announcements a
   LEFT JOIN users   u ON u.user_id  = a.author_id
   LEFT JOIN courses c ON c.course_id = a.course_id
@@ -148,9 +135,7 @@ $stmt->execute();
 $announcements = $stmt->get_result();
 $stmt->close();
 
-/* ============================================================
-   CLEAN AUDIENCE LABEL
-============================================================ */
+/* ================= CLEAN AUDIENCE LABEL ================= */
 function format_audience($aud) {
     return match ($aud) {
         'students' => 'Students',
@@ -166,9 +151,58 @@ function format_audience($aud) {
 <head>
   <meta charset="UTF-8">
   <title>Escolink Centra | Admin Announcements</title>
+
   <link rel="stylesheet" href="CSS/format.css">
   <link rel="stylesheet" href="CSS/admin.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+/* lock body scroll when modal open */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* modal scrolling + layout */
+.modal {
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+    word-wrap: break-word;
+}
+
+#viewBody {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+}
+
+/* truncated preview in card */
+.announce-preview {
+    max-height: 120px;
+    overflow: hidden;
+}
+
+/* equal size buttons in delete modal */
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.modal-buttons .delete-btn,
+.modal-buttons .cancel-btn {
+    min-width: 110px;
+    padding: 8px 18px;
+    text-align: center;
+}
+</style>
+
 </head>
 
 <body>
@@ -226,6 +260,12 @@ function format_audience($aud) {
         $aid        = $a['announcement_id'];
         $title      = $a['title'];
         $content    = $a['content'];
+
+        // truncate preview
+        $preview = mb_strlen($content) > 300
+            ? mb_substr($content, 0, 300) . "…"
+            : $content;
+
         $aud        = $a['audience'];
         $author     = $a['author_name'] ?? 'Unknown';
         $courseCode = $a['course_code'] ?? '';
@@ -252,7 +292,7 @@ function format_audience($aud) {
           | By: <?= htmlspecialchars($author) ?>
         </p>
 
-        <p class="announce-preview"><?= nl2br(htmlspecialchars($content)) ?></p>
+        <p class="announce-preview"><?= nl2br(htmlspecialchars($preview)) ?></p>
 
         <div class="card-actions">
           <button class="details-btn" onclick="openView(this)"><i class="fa-solid fa-eye"></i> View</button>
@@ -271,7 +311,7 @@ function format_audience($aud) {
 </main>
 </div>
 
-<!-- MODALS -->
+<!-- VIEW MODAL -->
 <div id="viewModal" class="modal">
   <div class="modal-content">
     <span class="close" onclick="closeView()">&times;</span>
@@ -281,6 +321,7 @@ function format_audience($aud) {
   </div>
 </div>
 
+<!-- EDIT MODAL -->
 <div id="editModal" class="modal">
   <div class="modal-content">
     <span class="close" onclick="closeEdit()">&times;</span>
@@ -308,7 +349,8 @@ function format_audience($aud) {
   </div>
 </div>
 
-<div id="deleteModal" class="modal" style="align-items:center; justify-content:center;">
+<!-- DELETE MODAL -->
+<div id="deleteModal" class="modal">
   <div class="modal-content" style="width:380px; text-align:center;">
     <span class="close" onclick="closeDelete()">&times;</span>
     <h2>Delete Announcement?</h2>
@@ -326,33 +368,65 @@ function format_audience($aud) {
   </div>
 </div>
 
-
 <script>
+// helpers
+function lockBody() {
+  document.body.classList.add('modal-open');
+}
+function unlockBody() {
+  document.body.classList.remove('modal-open');
+}
+
+/* VIEW */
 function openView(btn) {
   const c = btn.closest(".announcement-card");
   viewTitle.textContent = c.dataset.title;
   viewMeta.textContent  = "Target: " + c.dataset.audiencelabel + " | By: " + c.dataset.author;
-  viewBody.textContent  = c.dataset.content;
-  viewModal.style.display = "flex";
-}
-function closeView() { viewModal.style.display = "none"; }
+  viewBody.innerHTML    = (c.dataset.content || "").replace(/\n/g, "<br>");
 
+  viewModal.style.display = "flex";
+  lockBody();
+}
+function closeView() {
+  viewModal.style.display = "none";
+  unlockBody();
+}
+
+/* EDIT */
 function openEdit(btn) {
   const c = btn.closest(".announcement-card");
   edit_id.value       = c.dataset.id;
   edit_title.value    = c.dataset.title;
   edit_content.value  = c.dataset.content;
   edit_audience.value = c.dataset.audience;
-  editModal.style.display = "flex";
-}
-function closeEdit() { editModal.style.display = "none"; }
 
+  editModal.style.display = "flex";
+  lockBody();
+}
+function closeEdit() {
+  editModal.style.display = "none";
+  unlockBody();
+}
+
+/* DELETE */
 function openDelete(btn){
   const c = btn.closest(".announcement-card");
   delete_id.value = c.dataset.id;
+
   deleteModal.style.display = "flex";
+  lockBody();
 }
-function closeDelete() { deleteModal.style.display = "none"; }
+function closeDelete() {
+  deleteModal.style.display = "none";
+  unlockBody();
+}
+
+/* click outside to close */
+window.addEventListener('click', (e) => {
+  if (e.target === viewModal)  closeView();
+  if (e.target === editModal)  closeEdit();
+  if (e.target === deleteModal) closeDelete();
+});
 </script>
 
 </body>
