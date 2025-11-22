@@ -53,41 +53,71 @@ $stmt->close();
   <link rel="stylesheet" href="CSS/format.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-  <style>
-    /* ----- MATCH TEACHER/ADMIN MODAL STYLE ----- */
-    .modal-content {
-      max-width: 550px;
-      padding: 25px;
-      border-radius: 12px;
-      background: white;
-      position: relative;
-      text-align: left;
-    }
+<style>
+/* ================== MODAL PROPERTIES (MATCHES ADMIN + PROF) ================== */
 
-    .modal-content h2 {
-      color: #b21e8f;      
-      font-size: 22px;
-      margin-bottom: 15px;
-      text-align: left;
-    }
+/* Lock background scroll */
+body.modal-open {
+  overflow: hidden;
+}
 
-    .modal-content p {
-      text-align: left;
-      font-size: 15px;
-      line-height: 1.5;
-      margin-top: 8px;
-    }
+/* Modal wrapper */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 999;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
 
-    .modal .close {
-      color: #b21e8f;
-      font-size: 22px;
-      position: absolute;
-      top: 12px;
-      right: 15px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-  </style>
+/* Modal body scrolls independently */
+.modal-content {
+  max-height: 80vh;
+  overflow-y: auto;
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  position: relative;
+  max-width: 550px;
+  width: 100%;
+}
+
+/* Close button */
+.modal .close {
+  position: absolute;
+  right: 18px;
+  top: 12px;
+  cursor: pointer;
+  font-size: 22px;
+  font-weight: bold;
+  color: #b21e8f;
+}
+
+/* Title */
+.modal-content h2 {
+  color: #b21e8f;
+  font-size: 22px;
+  margin-bottom: 15px;
+}
+
+/* Wrapped modal content */
+#viewBody,
+.modal-content p {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.6;
+}
+
+/* Truncated preview in card */
+.announce-preview {
+  max-height: 120px;
+  overflow: hidden;
+}
+</style>
+
 </head>
 
 <body>
@@ -114,13 +144,30 @@ $stmt->close();
         <?php while ($a = $announcements->fetch_assoc()): ?>
 
           <?php
-            if ($a['audience'] === 'all')         $target = "All Users";
+            if ($a['audience'] === 'all')          $target = "All Users";
             elseif ($a['audience'] === 'students') $target = "All Students";
             elseif ($a['audience'] === 'class')    $target = $a['course_code'] ?? "Your Class";
-            else                                   $target = "Unknown";
+            else                                    $target = "Unknown";
+
+            $content = $a['content'] ?? '';
+
+            // truncate preview to match admin/prof behavior
+            if (mb_strlen($content) > 300) {
+                $preview = mb_substr($content, 0, 300) . "…";
+            } else {
+                $preview = $content;
+            }
+
           ?>
 
-          <div class="announcement-card">
+          <div class="announcement-card"
+            data-title="<?= htmlspecialchars($a['title'], ENT_QUOTES) ?>"
+            data-content="<?= htmlspecialchars($content, ENT_QUOTES) ?>"
+            data-target="<?= htmlspecialchars($target, ENT_QUOTES) ?>"
+            data-author="<?= htmlspecialchars($a['author_name'] ?? 'System', ENT_QUOTES) ?>"
+            data-id="m<?= $a['announcement_id'] ?>"
+          >
+
             <h3><?= htmlspecialchars($a['title']) ?></h3>
 
             <p class="announce-date">
@@ -129,9 +176,7 @@ $stmt->close();
               • Target: <?= htmlspecialchars($target) ?>
             </p>
 
-            <p class="announce-preview">
-              <?= htmlspecialchars(mb_strimwidth($a['content'], 0, 160, "...")) ?>
-            </p>
+            <p class="announce-preview"><?= nl2br(htmlspecialchars($preview)) ?></p>
 
             <button class="details-btn" onclick="openModal('m<?= $a['announcement_id'] ?>')">
               <i class="fa-solid fa-eye"></i> View Details
@@ -143,7 +188,7 @@ $stmt->close();
             <div class="modal-content">
               <span class="close" onclick="closeModal('m<?= $a['announcement_id'] ?>')">&times;</span>
               <h2><?= htmlspecialchars($a['title']) ?></h2>
-              <p><?= nl2br(htmlspecialchars($a['content'])) ?></p>
+              <p><?= nl2br(htmlspecialchars($content)) ?></p>
             </div>
           </div>
 
@@ -156,12 +201,27 @@ $stmt->close();
 </div>
 
 <script>
-function openModal(id){ document.getElementById(id).style.display = "flex"; }
-function closeModal(id){ document.getElementById(id).style.display = "none"; }
+// Lock/unlock background
+function lockBody(){ document.body.classList.add("modal-open"); }
+function unlockBody(){ document.body.classList.remove("modal-open"); }
 
+function openModal(id){
+  document.getElementById(id).style.display = "flex";
+  lockBody();
+}
+
+function closeModal(id){
+  document.getElementById(id).style.display = "none";
+  unlockBody();
+}
+
+// Close when clicking outside modal
 window.onclick = function(e){
   document.querySelectorAll(".modal").forEach(m => {
-    if (e.target === m) m.style.display = "none";
+    if (e.target === m){
+      m.style.display = "none";
+      unlockBody();
+    }
   });
 };
 </script>
