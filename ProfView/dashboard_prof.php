@@ -169,7 +169,17 @@ $stmt->close();
                 Target: <?= htmlspecialchars($target) ?>
               </p>
 
-              <p class="announce-preview"><?= nl2br(htmlspecialchars($a['content'])) ?></p>
+              <?php
+$content = $a['content'] ?? '';
+
+if (mb_strlen($content) > 300) {
+    $preview = mb_substr($content, 0, 300) . "…";
+} else {
+    $preview = $content;
+}
+?>
+<p class="announce-preview"><?= nl2br(htmlspecialchars($preview)) ?></p>
+
             </div>
 
           <?php endwhile; ?>
