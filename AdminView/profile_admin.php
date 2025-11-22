@@ -6,6 +6,23 @@ include("../includes/logging.php"); // <-- ADDED
 
 $user_id = $_SESSION['user_id'];
 
+// ================== PASSWORD RULE FUNCTION (SAME AS users_admin.php) ==================
+function validate_password_rule($password, &$errorMsg) {
+    if (strlen($password) < 8) {
+        $errorMsg = "New password must be at least 8 characters long.";
+        return false;
+    }
+    if (!preg_match('/[0-9]/', $password)) {
+        $errorMsg = "New password must include at least one number.";
+        return false;
+    }
+    if (!preg_match('/[\W_]/', $password)) {
+        $errorMsg = "New password must include at least one special character.";
+        return false;
+    }
+    return true;
+}
+
 // ===== FETCH ADMIN INFO =====
 $stmt = $conn->prepare("
   SELECT 
@@ -92,7 +109,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_profile"])) {
 }
 
 /* ==========================
-   PASSWORD CHANGE  (LOGGING ADDED)
+   PASSWORD CHANGE  (LOGGING ADDED + STRONG RULE)
 ========================== */
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["change_password"])) {
     $current = $_POST["current_password"] ?? '';
@@ -113,26 +130,29 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["change_password"])) {
     elseif ($new !== $confirm) {
         $error = "New passwords do not match.";
     }
-    elseif (strlen($new) < 6) {
-        $error = "New password must be at least 6 characters.";
-    }
     else {
-        $new_hash = password_hash($new, PASSWORD_DEFAULT);
-        $stmt = $conn->prepare("UPDATE users SET password=? WHERE user_id=?");
-        $stmt->bind_param("si", $new_hash, $user_id);
-        $stmt->execute();
-        $stmt->close();
+        // apply password rule
+        $pwError = "";
+        if (!validate_password_rule($new, $pwError)) {
+            $error = $pwError;
+        } else {
+            $new_hash = password_hash($new, PASSWORD_DEFAULT);
+            $stmt = $conn->prepare("UPDATE users SET password=? WHERE user_id=?");
+            $stmt->bind_param("si", $new_hash, $user_id);
+            $stmt->execute();
+            $stmt->close();
 
-        $success = "Password updated successfully.";
+            $success = "Password updated successfully.";
 
-        // --- LOG PASSWORD CHANGE ---
-        log_activity(
-            $conn,
-            (int)$user_id,
-            "Changed Password",
-            "Admin changed their account password.",
-            "success"
-        );
+            // --- LOG PASSWORD CHANGE ---
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Changed Password",
+                "Admin changed their account password.",
+                "success"
+            );
+        }
     }
 }
 
@@ -160,17 +180,25 @@ $avatar = (!empty($profile_pic))
 
       <!-- TOPBAR -->
       <header class="topbar">
-  <div></div> <!-- empty spacer to keep layout balanced -->
+        <div></div> <!-- empty spacer to keep layout balanced -->
 
-  <div class="profile-section">
-    <img src="<?php echo $avatar; ?>" class="avatar">
-    <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
-  </div>
-</header>
-
+        <div class="profile-section">
+          <img src="<?php echo $avatar; ?>" class="avatar">
+          <span class="profile-name"><?php echo htmlspecialchars($full_name); ?></span>
+        </div>
+      </header>
 
       <section class="dashboard-body">
         <section class="profile-wrapper">
+
+          <!-- STATUS (SUCCESS / ERROR BANNER) -->
+          <?php if (!empty($error)): ?>
+            <div class="profile-message error"><?php echo htmlspecialchars($error); ?></div>
+          <?php elseif (!empty($success)): ?>
+            <div class="profile-message success"><?php echo htmlspecialchars($success); ?></div>
+          <?php elseif (isset($_GET['updated'])): ?>
+            <div class="profile-message success">Profile updated successfully.</div>
+          <?php endif; ?>
 
           <!-- BANNER -->
           <div class="profile-banner">
@@ -203,15 +231,6 @@ $avatar = (!empty($profile_pic))
             <button class="edit-btn" onclick="openEditProfile()">Edit Profile</button>
             <button class="change-btn" onclick="openChangePassword()">Change Password</button>
           </div>
-
-          <!-- STATUS -->
-          <?php if (!empty($error)): ?>
-            <div class="profile-message error"><?php echo htmlspecialchars($error); ?></div>
-          <?php elseif (!empty($success)): ?>
-            <div class="profile-message success"><?php echo htmlspecialchars($success); ?></div>
-          <?php elseif (isset($_GET['updated'])): ?>
-            <div class="profile-message success">Profile updated successfully.</div>
-          <?php endif; ?>
 
         </section>
       </section>
@@ -263,31 +282,31 @@ $avatar = (!empty($profile_pic))
 
         <label>Current Password</label>
         <input 
-  type="password" 
-  name="current_password" 
-  required 
-  autocomplete="new-password"
-  placeholder="Enter current password"
-/>
-
+          type="password" 
+          name="current_password" 
+          required 
+          autocomplete="new-password"
+          placeholder="Enter current password"
+        />
 
         <label>New Password</label>
         <input 
-  type="password" 
-  name="new_password" 
-  required 
-  autocomplete="new-password"
-/>
-
+          type="password" 
+          name="new_password" 
+          required 
+          autocomplete="new-password"
+        />
+        <small style="color:#b21e1e; font-size:13px;">
+          New password must be at least 8 characters, include a number, and a special character.
+        </small>
 
         <label>Confirm New Password</label>
         <input 
-  type="password" 
-  name="confirm_password" 
-  required 
-  autocomplete="new-password"
-/>
-
+          type="password" 
+          name="confirm_password" 
+          required 
+          autocomplete="new-password"
+        />
 
         <div class="button-group">
           <button type="submit" class="save-btn">Update Password</button>

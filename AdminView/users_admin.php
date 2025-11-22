@@ -21,6 +21,24 @@ if ($stmtP->fetch() && !empty($profile_pic)) {
 $stmtP->close();
 
 
+// ================== PASSWORD RULE FUNCTION ==================
+function validate_password_rule($password, &$errorMsg) {
+    if (strlen($password) < 8) {
+        $errorMsg = "Password must be at least 8 characters long.";
+        return false;
+    }
+    if (!preg_match('/[0-9]/', $password)) {
+        $errorMsg = "Password must include at least one number.";
+        return false;
+    }
+    if (!preg_match('/[\W_]/', $password)) {
+        $errorMsg = "Password must include at least one special character.";
+        return false;
+    }
+    return true;
+}
+
+
 // ================== HELPER: BUILD QUERY STRING ==================
 function build_query(array $overrides = []): string {
     $params = $_GET;
@@ -45,27 +63,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $role_new      = trim($_POST['role']);
         $password      = $_POST['password'];
 
-        if ($full_name_new && $email && $username_new && $password && $role_new) {
-            $hash = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("
-                INSERT INTO users (username, password, full_name, email, role, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, NOW(), NOW())
-            ");
-            $stmt->bind_param("sssss", $username_new, $hash, $full_name_new, $email, $role_new);
-            $stmt->execute();
-            $stmt->close();
+        $error = "";
 
-            // LOG: Created user
-            log_activity(
-                $conn,
-                (int)$user_id,
-                "Created User",
-                "Created user '{$full_name_new}' (username: {$username_new}, role: {$role_new}).",
-                "success"
-            );
+        // Validate password according to rule
+        if (!validate_password_rule($password, $error)) {
+            echo "<script>alert('$error'); window.history.back();</script>";
+            exit;
         }
 
-        header("Location: users_admin.php");
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+
+        $stmt = $conn->prepare("
+            INSERT INTO users (username, password, full_name, email, role, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+        ");
+        $stmt->bind_param("sssss", $username_new, $hash, $full_name_new, $email, $role_new);
+        $stmt->execute();
+        $stmt->close();
+
+        // LOG: Created user
+        log_activity(
+            $conn,
+            (int)$user_id,
+            "Created User",
+            "Created user '{$full_name_new}' (username: {$username_new}, role: {$role_new}).",
+            "success"
+        );
+
+        header("Location: users_admin.php?msg=user_created");
         exit;
     }
 
@@ -79,19 +104,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new_pass       = $_POST['edit_password'];
 
         if ($uid > 0 && $edit_full_name && $edit_email && $edit_username && $edit_role) {
+
             if ($new_pass !== "") {
+                // Validate new password
+                $error = "";
+                if (!validate_password_rule($new_pass, $error)) {
+                    echo "<script>alert('$error'); window.history.back();</script>";
+                    exit;
+                }
+
                 $hash = password_hash($new_pass, PASSWORD_DEFAULT);
                 $stmt = $conn->prepare("
-                    UPDATE users SET username=?, full_name=?, email=?, role=?, password=?, updated_at=NOW()
+                    UPDATE users
+                    SET username=?, full_name=?, email=?, role=?, password=?, updated_at=NOW()
                     WHERE user_id=?
                 ");
-                $stmt->bind_param("sssssi", $edit_username, $edit_full_name, $edit_email, $edit_role, $hash, $uid);
+                $stmt->bind_param(
+                    "sssssi",
+                    $edit_username,
+                    $edit_full_name,
+                    $edit_email,
+                    $edit_role,
+                    $hash,
+                    $uid
+                );
             } else {
+                // No password change
                 $stmt = $conn->prepare("
-                    UPDATE users SET username=?, full_name=?, email=?, role=?, updated_at=NOW()
+                    UPDATE users
+                    SET username=?, full_name=?, email=?, role=?, updated_at=NOW()
                     WHERE user_id=?
                 ");
-                $stmt->bind_param("ssssi", $edit_username, $edit_full_name, $edit_email, $edit_role, $uid);
+                $stmt->bind_param(
+                    "ssssi",
+                    $edit_username,
+                    $edit_full_name,
+                    $edit_email,
+                    $edit_role,
+                    $uid
+                );
             }
 
             $stmt->execute();
@@ -114,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
         }
 
-        header("Location: users_admin.php");
+        header("Location: users_admin.php?msg=user_updated");
         exit;
     }
 
@@ -126,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Best-effort delete of linked info + user
             $conn->query("DELETE FROM student_info WHERE user_id=$uid");
             $conn->query("DELETE FROM teacher_info WHERE user_id=$uid");
-            $conn->query("DELETE FROM users WHERE user_id=$uid");
+            $conn->query("DELETE FROM users        WHERE user_id=$uid");
 
             // LOG: Deleted user
             log_activity(
@@ -138,8 +189,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
         }
 
-        header("Location: users_admin.php");
+        header("Location: users_admin.php?msg=user_deleted");
         exit;
+    }
+}
+
+
+// ================== STATUS MESSAGE (AFTER REDIRECT) ==================
+$status_msg   = "";
+$status_class = "";
+
+if (!empty($_GET['msg'])) {
+    switch ($_GET['msg']) {
+        case 'user_created':
+            $status_msg   = "User created successfully.";
+            $status_class = "success";
+            break;
+        case 'user_updated':
+            $status_msg   = "User updated successfully.";
+            $status_class = "success";
+            break;
+        case 'user_deleted':
+            $status_msg   = "User deleted successfully.";
+            $status_class = "success";
+            break;
+        default:
+            $status_msg = "";
     }
 }
 
@@ -221,6 +296,25 @@ function display_role($r) {
 <link rel="stylesheet" href="CSS/format.css">
 <link rel="stylesheet" href="CSS/admin.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+  .status-message {
+    margin-bottom: 15px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+  }
+  .status-message.success {
+    color: #0c6b24;
+    background-color: #d8f5e1;
+  }
+  .status-message.error {
+    color: #b21e1e;
+    background-color: #fbdada;
+  }
+</style>
 </head>
 
 <body>
@@ -240,6 +334,13 @@ function display_role($r) {
         </header>
 
         <section class="dashboard-body">
+
+            <?php if ($status_msg): ?>
+              <div class="status-message <?php echo htmlspecialchars($status_class); ?>" id="statusMessage">
+                <?php echo htmlspecialchars($status_msg); ?>
+              </div>
+            <?php endif; ?>
+
             <h1>User Management</h1>
             <p class="semester-text">Manage all registered users across Escolink Centra</p>
 
@@ -397,6 +498,10 @@ function display_role($r) {
       <label>Password</label>
       <input type="password" name="password" required autocomplete="new-password">
 
+      <small style="color:#b21e1e; font-size:13px;">
+        Password must be at least 8 characters, include a number, and a special character.
+      </small>
+
       <div class="button-group">
         <button type="submit" class="save-btn">Save</button>
         <button type="button" class="cancel-btn" id="addUserCancel">Cancel</button>
@@ -438,6 +543,11 @@ function display_role($r) {
 
       <label>Change user's password</label>
       <input type="password" id="edit_password" name="edit_password" autocomplete="new-password">
+
+      <small style="color:#b21e1e; font-size:13px;">
+        Leave blank to keep current password. If changing, it must be at least 8 characters,
+        include a number, and a special character.
+      </small>
 
       <div class="button-group">
         <button type="submit" class="save-btn">Save Changes</button>
@@ -511,6 +621,19 @@ document.querySelectorAll(".user-delete-btn").forEach(btn => {
 });
 
 document.getElementById("deleteUserCancel").onclick = () => closeModal("deleteUserModal");
+
+// Auto-hide status message after 3 seconds
+const statusEl = document.getElementById('statusMessage');
+if (statusEl) {
+  setTimeout(() => {
+    statusEl.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+    statusEl.style.opacity = '0';
+    statusEl.style.transform = 'translateY(-5px)';
+    setTimeout(() => {
+      statusEl.remove();
+    }, 400);
+  }, 3000);
+}
 </script>
 
 </body>

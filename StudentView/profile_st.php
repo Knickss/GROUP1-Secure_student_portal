@@ -2,11 +2,28 @@
 include("../includes/auth_session.php");
 include("../includes/auth_student.php");
 include("../config/db_connect.php");
-include("../includes/logging.php"); // <-- ADDED
+include("../includes/logging.php");
+
+// ================== PASSWORD RULE FUNCTION ==================
+function validate_password_rule($password, &$errorMsg) {
+    if (strlen($password) < 8) {
+        $errorMsg = "New password must be at least 8 characters long.";
+        return false;
+    }
+    if (!preg_match('/[0-9]/', $password)) {
+        $errorMsg = "New password must include at least one number.";
+        return false;
+    }
+    if (!preg_match('/[\W_]/', $password)) {
+        $errorMsg = "New password must include at least one special character.";
+        return false;
+    }
+    return true;
+}
 
 $user_id = $_SESSION['user_id'];
 
-// ===== FETCH STUDENT FULL INFO (users + student_info) =====
+// ===== FETCH STUDENT FULL INFO =====
 $stmt = $conn->prepare("
   SELECT 
     u.user_id,
@@ -27,11 +44,8 @@ $res = $stmt->get_result();
 $user = $res->fetch_assoc();
 $stmt->close();
 
-if (!$user) {
-    die("User not found.");
-}
+if (!$user) die("User not found.");
 
-// Normalize
 $full_name   = $user['full_name']      ?? '';
 $email       = $user['email']          ?? '';
 $profile_pic = $user['profile_pic']    ?? '';
@@ -45,14 +59,12 @@ $success = '';
 
 
 // ======================================================================
-// UPDATE PROFILE (About Me + Profile Picture Only)
-// LOGGING ADDED
+// UPDATE PROFILE (About Me + Profile Picture)
 // ======================================================================
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_profile"])) {
     $new_about = trim($_POST["about_me"] ?? '');
     $new_pfp = $profile_pic;
 
-    // Handle profile picture upload
     if (!empty($_FILES['profile_image']['name'])) {
         $dir = "../uploads/";
         if (!is_dir($dir)) mkdir($dir, 0775, true);
@@ -70,18 +82,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_profile"])) {
         }
     }
 
-    // Update database
     $stmt = $conn->prepare("UPDATE users SET about_me = ?, profile_pic = ? WHERE user_id = ?");
     $stmt->bind_param("ssi", $new_about, $new_pfp, $user_id);
     $stmt->execute();
     $stmt->close();
 
-    // LOG PROFILE UPDATE
     log_activity(
         $conn,
         (int)$user_id,
         "Updated Profile",
-        "Student updated profile (About Me + Profile Picture). AboutMe length=" . strlen($new_about) . ", ProfilePic='{$new_pfp}'.",
+        "Student updated About Me + Profile Picture.",
         "success"
     );
 
@@ -91,14 +101,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_profile"])) {
 
 
 // ======================================================================
-// PASSWORD CHANGE
-// LOGGING ADDED
+// CHANGE PASSWORD (WITH STRONG RULE)
 // ======================================================================
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["change_password"])) {
+    
     $current = $_POST["current_password"] ?? '';
     $new     = $_POST["new_password"] ?? '';
     $confirm = $_POST["confirm_password"] ?? '';
 
+    // Fetch current hashed password
     $stmt = $conn->prepare("SELECT password FROM users WHERE user_id = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
@@ -108,32 +119,34 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["change_password"])) {
 
     if (!password_verify($current, $hashed)) {
         $error = "Current password is incorrect.";
-    } elseif ($new !== $confirm) {
+    }
+    elseif ($new !== $confirm) {
         $error = "New passwords do not match.";
-    } elseif (strlen($new) < 6) {
-        $error = "New password must be at least 6 characters.";
-    } else {
-        $new_hash = password_hash($new, PASSWORD_DEFAULT);
-        $stmt = $conn->prepare("UPDATE users SET password=? WHERE user_id=?");
-        $stmt->bind_param("si", $new_hash, $user_id);
-        $stmt->execute();
-        $stmt->close();
+    }
+    else {
+        $pwError = "";
+        if (!validate_password_rule($new, $pwError)) {
+            $error = $pwError;
+        } else {
+            $new_hash = password_hash($new, PASSWORD_DEFAULT);
+            $stmt = $conn->prepare("UPDATE users SET password=? WHERE user_id=?");
+            $stmt->bind_param("si", $new_hash, $user_id);
+            $stmt->execute();
+            $stmt->close();
 
-        $success = "Password updated successfully.";
+            $success = "Password updated successfully.";
 
-        // LOG PASSWORD CHANGE
-        log_activity(
-            $conn,
-            (int)$user_id,
-            "Changed Password",
-            "Student changed their account password.",
-            "success"
-        );
+            log_activity(
+                $conn,
+                (int)$user_id,
+                "Changed Password",
+                "Student changed password.",
+                "success"
+            );
+        }
     }
 }
 
-
-// Avatar
 $avatar = (!empty($profile_pic))
     ? '../uploads/' . htmlspecialchars($profile_pic)
     : 'images/blank_pic.png';
@@ -166,6 +179,16 @@ $avatar = (!empty($profile_pic))
 
 <section class="dashboard-body">
 <section class="profile-wrapper">
+
+  <!-- SUCCESS / ERROR BANNER -->
+  <?php if (!empty($error)): ?>
+    <div class="profile-message error"><?php echo htmlspecialchars($error); ?></div>
+  <?php elseif (!empty($success)): ?>
+    <div class="profile-message success"><?php echo htmlspecialchars($success); ?></div>
+  <?php elseif (isset($_GET['updated'])): ?>
+    <div class="profile-message success">Profile updated successfully.</div>
+  <?php endif; ?>
+
 
   <div class="profile-banner">
     <img src="<?php echo $avatar; ?>" class="profile-avatar">
@@ -209,14 +232,6 @@ $avatar = (!empty($profile_pic))
     <button class="change-btn" onclick="openChangePassword()">Change Password</button>
   </div>
 
-  <?php if (!empty($error)): ?>
-    <div class="profile-message error"><?php echo htmlspecialchars($error); ?></div>
-  <?php elseif (!empty($success)): ?>
-    <div class="profile-message success"><?php echo htmlspecialchars($success); ?></div>
-  <?php elseif (isset($_GET['updated'])): ?>
-    <div class="profile-message success">Profile updated successfully.</div>
-  <?php endif; ?>
-
 </section>
 </section>
 </main>
@@ -245,10 +260,8 @@ $avatar = (!empty($profile_pic))
         <label>About Me</label>
 <textarea 
     name="about_me" 
-    rows="4" 
-    placeholder="Write a short description about yourself..."
+    rows="4"
 ><?php echo htmlspecialchars($about_me); ?></textarea>
-
       </div>
 
       <div class="form-group">
@@ -273,22 +286,26 @@ $avatar = (!empty($profile_pic))
     <form class="modal-form" method="POST" autocomplete="off">
       <input type="hidden" name="change_password" value="1">
 
+      <!-- Autofill prevention -->
       <input type="text" style="display:none">
       <input type="password" style="display:none">
 
       <div class="form-group">
         <label>Current Password</label>
-        <input type="password" name="current_password" autocomplete="new-password" required>
+        <input type="password" name="current_password" required autocomplete="off">
       </div>
 
       <div class="form-group">
         <label>New Password</label>
-        <input type="password" name="new_password" autocomplete="new-password" required>
+        <input type="password" name="new_password" required autocomplete="new-password">
+        <small style="color:#b21e1e; font-size:13px;">
+          Must be at least 8 characters, include a number and a special character.
+        </small>
       </div>
 
       <div class="form-group">
         <label>Confirm New Password</label>
-        <input type="password" name="confirm_password" autocomplete="new-password" required>
+        <input type="password" name="confirm_password" required autocomplete="new-password">
       </div>
 
       <div class="modal-buttons">
