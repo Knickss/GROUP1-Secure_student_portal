@@ -274,13 +274,42 @@ $roleClean = $role ? ucfirst($role) : "";
       </span>
 
       <!-- Pages -->
-      <?php for ($i=1; $i<=$totalPages; $i++): ?>
-        <?php if ($i==$page): ?>
-          <span class="current-page"><?= $i ?></span>
-        <?php else: ?>
-          <a href="<?= build_query(['page'=>$i]) ?>"><?= $i ?></a>
-        <?php endif; ?>
-      <?php endfor; ?>
+      <!-- Pages -->
+<?php
+$maxButtons = 10;
+
+// Determine window range
+$start = max(1, $page - 4);
+$end   = min($totalPages, $start + $maxButtons - 1);
+
+// Adjust if near the end
+if ($end - $start + 1 < $maxButtons) {
+    $start = max(1, $end - $maxButtons + 1);
+}
+?>
+
+<?php if ($start > 1): ?>
+    <a href="<?= build_query(['page'=>1]) ?>">1</a>
+    <?php if ($start > 2): ?>
+        <span class="ellipsis">...</span>
+    <?php endif; ?>
+<?php endif; ?>
+
+<?php for ($i = $start; $i <= $end; $i++): ?>
+    <?php if ($i == $page): ?>
+        <span class="current-page"><?= $i ?></span>
+    <?php else: ?>
+        <a href="<?= build_query(['page'=>$i]) ?>"><?= $i ?></a>
+    <?php endif; ?>
+<?php endfor; ?>
+
+<?php if ($end < $totalPages): ?>
+    <?php if ($end < $totalPages - 1): ?>
+        <span class="ellipsis">...</span>
+    <?php endif; ?>
+    <a href="<?= build_query(['page'=>$totalPages]) ?>"><?= $totalPages ?></a>
+<?php endif; ?>
+
 
       <!-- Next -->
       <span class="<?= ($page>=$totalPages)?'disabled':'' ?>">
