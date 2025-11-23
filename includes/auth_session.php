@@ -1,5 +1,22 @@
 <?php
-// Start session (must be first)
+// ======================================================
+// SECURITY HEADERS (must be FIRST before any output)
+// ======================================================
+header("X-Frame-Options: SAMEORIGIN");
+header("X-Content-Type-Options: nosniff");
+header("Content-Security-Policy: default-src 'self' 'unsafe-inline' data:;");
+header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
+header_remove("X-Powered-By");
+
+// ======================================================
+// Secure session cookie flags (must come BEFORE session_start)
+// ======================================================
+session_set_cookie_params([
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+
+// Start session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -20,11 +37,8 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
 $role = $_SESSION['role'];
 
 // ======================================================
-// 2. ADMIN 2FA ENFORCEMENT (FIXED)
+// 2. ADMIN 2FA ENFORCEMENT
 // ======================================================
-// OLD BUG: This block ran even AFTER LOGOUT, reactivating admin session.
-// FIX: Only enforce 2FA if user_id EXISTS and role == admin.
-
 if ($role === 'admin' && isset($_SESSION['user_id'])) {
 
     // If user is accessing admin pages but has not passed 2FA
@@ -40,7 +54,7 @@ if ($role === 'admin' && isset($_SESSION['user_id'])) {
 }
 
 // ======================================================
-// 3. OPTIONAL: Prevent cached pages from appearing after logout
+// 3. Prevent cached pages from appearing after logout
 // ======================================================
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Pragma: no-cache");
