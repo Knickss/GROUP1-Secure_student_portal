@@ -4,7 +4,6 @@
 // ======================================================
 header("X-Frame-Options: SAMEORIGIN");
 header("X-Content-Type-Options: nosniff");
-header("Content-Security-Policy: default-src 'self' 'unsafe-inline' data:;");
 header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
 header_remove("X-Powered-By");
 
