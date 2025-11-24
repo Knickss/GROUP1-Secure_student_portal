@@ -36,6 +36,27 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
 $role = $_SESSION['role'];
 
 // ======================================================
+// 1.5 INACTIVITY TIMEOUT (auto logout)
+// ======================================================
+$timeout = 3600; // 60 minutes (3600 seconds)
+
+if (!isset($_SESSION['last_activity'])) {
+    $_SESSION['last_activity'] = time();
+}
+
+if (time() - $_SESSION['last_activity'] > $timeout) {
+    // Destroy session on inactivity
+    session_unset();
+    session_destroy();
+    header("Location: ../LoginPage/login.php?timeout=1");
+    exit;
+}
+
+$_SESSION['last_activity'] = time(); // Refresh timer
+
+
+
+// ======================================================
 // 2. ADMIN 2FA ENFORCEMENT
 // ======================================================
 if ($role === 'admin' && isset($_SESSION['user_id'])) {
